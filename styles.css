@@ -1,0 +1,12 @@
+/* Minimal custom styles - most styling done with Tailwind CSS */
+
+.correct-answer {
+    color: #16a34a;
+    font-weight: bold;
+}
+
+/* Additional utility styles */
+.binary-text {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+}
