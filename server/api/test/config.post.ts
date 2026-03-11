@@ -12,8 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Invalid PIN' })
   }
 
-  const body2 = body as any
-  if (!body2.verifyOnly) {
+  if (!body.verifyOnly) {
     db.prepare('UPDATE test_config SET start_date = ?, end_date = ?, duration_minutes = ? WHERE id = 1')
       .run(startDate || null, endDate || null, durationMinutes || 60)
   }
