@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     httpOnly: true,
     maxAge: 60 * 60 * 24,
     path: '/',
-    secure: process.env.NODE_ENV === 'production'
+    secure: process.env.NODE_ENV !== 'development'
   })
 
   return { success: true, student: { id: student.id, name: student.name, studentId: student.student_id } }
