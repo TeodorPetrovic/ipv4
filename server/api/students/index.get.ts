@@ -1,7 +1,7 @@
 import { requireAdminSession } from '../../utils/service/auth'
-import { getSubmittedResults } from '../../utils/service/results'
+import { listStudents } from '../../utils/service/students'
 
 export default defineEventHandler(async (event) => {
   requireAdminSession(event)
-  return getSubmittedResults()
+  return listStudents()
 })

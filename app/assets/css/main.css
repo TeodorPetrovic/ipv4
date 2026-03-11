@@ -2,9 +2,25 @@
 @import "@nuxt/ui";
 
 @theme static {
-  --font-sans: 'Public Sans', sans-serif;
+  --font-sans: "Public Sans", sans-serif;
 }
 
 :root {
   --ui-header-height: calc(var(--spacing) * 12);
+}
+
+.field-correct input,
+.field-correct textarea,
+.field-correct button,
+.field-correct {
+  border-color: var(--ui-success) !important;
+  background-color: color-mix(in srgb, var(--ui-success) 12%, white) !important;
+}
+
+.field-wrong input,
+.field-wrong textarea,
+.field-wrong button,
+.field-wrong {
+  border-color: var(--ui-error) !important;
+  background-color: color-mix(in srgb, var(--ui-error) 10%, white) !important;
 }

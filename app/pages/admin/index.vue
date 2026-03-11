@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const studentId = ref('')
+const email = ref('tpetrovic@singimail.rs')
+const password = ref('123')
 const loading = ref(false)
 const error = ref('')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
@@ -8,31 +9,26 @@ const { data: authState } = await useFetch('/api/auth/session', {
   headers: requestHeaders,
 })
 
-if (authState.value?.student) {
-  await navigateTo('/tests')
+if (authState.value?.isAdmin) {
+  await navigateTo('/admin/tests')
 }
 
 async function login() {
   error.value = ''
-
-  if (!studentId.value.trim()) {
-    error.value = 'Student ID is required'
-    return
-  }
-
   loading.value = true
 
   try {
-    await $fetch('/api/auth/login', {
+    await $fetch('/api/auth/admin', {
       method: 'POST',
       body: {
-        studentId: studentId.value.trim(),
+        email: email.value,
+        password: password.value,
       },
     })
 
-    await navigateTo('/tests')
+    await navigateTo('/admin/tests')
   } catch (fetchError: any) {
-    error.value = fetchError.data?.message || 'Login failed'
+    error.value = fetchError.data?.message || 'Admin login failed'
   } finally {
     loading.value = false
   }
@@ -44,18 +40,28 @@ async function login() {
     <UCard class="w-full">
       <template #header>
         <div class="space-y-1">
-          <h1 class="text-xl font-semibold">Student Login</h1>
-          <p class="text-sm text-muted">Enter your student ID to view available tests.</p>
+          <h1 class="text-xl font-semibold">Admin Login</h1>
+          <p class="text-sm text-muted">Enter your email and password to manage tests, students, and results.</p>
         </div>
       </template>
 
       <div class="space-y-4">
-        <UFormField label="Student ID" required>
+        <UFormField label="Email" required>
           <UInput
-            v-model="studentId"
+            v-model="email"
+            type="email"
             class="w-full"
-            placeholder="20240001"
-            icon="i-lucide-id-card"
+            placeholder="tpetrovic@singimail.rs"
+            @keyup.enter="login"
+          />
+        </UFormField>
+
+        <UFormField label="Password" required>
+          <UInput
+            v-model="password"
+            type="password"
+            class="w-full"
+            placeholder="Enter password"
             @keyup.enter="login"
           />
         </UFormField>

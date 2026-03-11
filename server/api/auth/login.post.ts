@@ -1,21 +1,17 @@
-import { findOrCreateStudent } from '../../utils/service/auth'
+import { loginStudent, setStudentSession } from '../../utils/service/auth'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
-  const { name, studentId } = body
+  const body = await readBody<{ studentId?: string }>(event)
+  const student = await loginStudent(body.studentId || '')
 
-  if (!name || !studentId) {
-    throw createError({ statusCode: 400, message: 'Name and student ID are required' })
-  }
-
-  const student = await findOrCreateStudent(name, studentId)
-
-  setCookie(event, 'session', JSON.stringify({ studentDbId: student.id, name: student.name, studentId: student.studentId }), {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24,
-    path: '/',
-    secure: process.env.NODE_ENV !== 'development',
+  setStudentSession(event, {
+    studentDbId: student.id,
+    studentId: student.studentId,
+    name: student.name,
   })
 
-  return { success: true, student }
+  return {
+    success: true,
+    student,
+  }
 })

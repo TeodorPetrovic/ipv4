@@ -1,4 +1,19 @@
 <script setup lang="ts">
-navigateTo('/login')
+const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+
+const { data: authState } = await useFetch('/api/auth/session', {
+  headers: requestHeaders,
+})
+
+if (authState.value?.student) {
+  await navigateTo('/tests')
+} else if (authState.value?.isAdmin) {
+  await navigateTo('/admin/tests')
+} else {
+  await navigateTo('/login')
+}
 </script>
-<template><div /></template>
+
+<template>
+  <div />
+</template>
