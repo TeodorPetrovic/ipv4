@@ -14,12 +14,8 @@ import '@iconify/utils';
 import 'consola';
 
 function generateLevel1Tasks() {
-  const tasks = [];
-  for (let i = 0; i < 1; i++) {
-    const ip = generateRandomIp();
-    tasks.push({ binary: ipToBinary(ip), decimal: ip });
-  }
-  return tasks;
+  const ip = generateRandomIp();
+  return [{ binary: ipToBinary(ip), decimal: ip }];
 }
 function generateLevel2Tasks() {
   const tasks = [];

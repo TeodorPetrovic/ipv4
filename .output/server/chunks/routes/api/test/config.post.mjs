@@ -22,8 +22,7 @@ const config_post = defineEventHandler(async (event) => {
   if (pin !== correctPin) {
     throw createError({ statusCode: 403, message: "Invalid PIN" });
   }
-  const body2 = body;
-  if (!body2.verifyOnly) {
+  if (!body.verifyOnly) {
     db.prepare("UPDATE test_config SET start_date = ?, end_date = ?, duration_minutes = ? WHERE id = 1").run(startDate || null, endDate || null, durationMinutes || 60);
   }
   return { success: true };
