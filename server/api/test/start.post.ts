@@ -1,9 +1,10 @@
 import { getDb } from '../../utils/db'
+import { testSessions } from '../../db/schema'
 import {
   generateRandomIp, generateRandomCidr, generateRandomSubnetMask,
   ipToBinary, getIpClass, getNetworkAddress, getBroadcastAddress,
   getHostCountFromMask, cidrToSubnetMask, sameNetwork
-} from '../../utils/ipv4'
+} from '../../../utils/ipv4'
 
 function generateLevel1Tasks() {
   const ip = generateRandomIp()
@@ -124,9 +125,13 @@ export default defineEventHandler(async (event) => {
     level6: generateLevel6Tasks()
   }
 
-  const result = db.prepare(
-    'INSERT INTO test_sessions (student_db_id, student_name, student_id, tasks_json, created_at) VALUES (?, ?, ?, ?, datetime("now"))'
-  ).run(session.studentDbId, session.name, session.studentId, JSON.stringify(tasks))
+  const [inserted] = await db.insert(testSessions).values({
+    studentDbId: session.studentDbId,
+    studentName: session.name,
+    studentId: session.studentId,
+    tasksJson: JSON.stringify(tasks),
+    createdAt: new Date(),
+  }).$returningId()
 
-  return { sessionId: result.lastInsertRowid, tasks }
+  return { sessionId: inserted.id, tasks }
 })

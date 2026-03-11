@@ -1,49 +1,24 @@
-import Database from 'better-sqlite3'
-import { join } from 'path'
-import { mkdirSync } from 'fs'
+import { drizzle } from 'drizzle-orm/mysql2'
+import mysql from 'mysql2/promise'
+import * as schema from '../db/schema'
 
-let _db: Database.Database | null = null
+export type Db = ReturnType<typeof drizzle<typeof schema>>
 
-export function getDb(): Database.Database {
+let _db: Db | null = null
+
+export function getDb(): Db {
   if (_db) return _db
 
-  const dataDir = join(process.cwd(), 'data')
-  mkdirSync(dataDir, { recursive: true })
+  const pool = mysql.createPool({
+    host: process.env.MYSQL_HOST || 'localhost',
+    port: parseInt(process.env.MYSQL_PORT || '3306'),
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'ipv4_test',
+    waitForConnections: true,
+    connectionLimit: 10,
+  })
 
-  _db = new Database(join(dataDir, 'ipv4.db'))
-
-  _db.exec(`
-    CREATE TABLE IF NOT EXISTS test_config (
-      id INTEGER PRIMARY KEY,
-      start_date TEXT,
-      end_date TEXT,
-      duration_minutes INTEGER DEFAULT 60,
-      admin_pin TEXT DEFAULT '1234'
-    );
-
-    CREATE TABLE IF NOT EXISTS students (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      student_id TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS test_sessions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      student_db_id INTEGER REFERENCES students(id),
-      student_name TEXT NOT NULL,
-      student_id TEXT NOT NULL,
-      tasks_json TEXT NOT NULL,
-      answers_json TEXT,
-      score INTEGER,
-      total_questions INTEGER,
-      submitted_at TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    INSERT OR IGNORE INTO test_config (id, start_date, end_date, duration_minutes, admin_pin)
-    VALUES (1, NULL, NULL, 60, '1234');
-  `)
-
+  _db = drizzle(pool, { schema, mode: 'default' })
   return _db
 }

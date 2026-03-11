@@ -1,7 +1,10 @@
 import { getDb } from '../../utils/db'
+import { testConfig } from '../../db/schema'
+import { eq } from 'drizzle-orm'
 
-export default defineEventHandler(() => {
+export default defineEventHandler(async () => {
   const db = getDb()
-  const config = db.prepare('SELECT * FROM test_config WHERE id = 1').get() as any
-  return config || { start_date: null, end_date: null, duration_minutes: 60 }
+  const rows = await db.select().from(testConfig).where(eq(testConfig.id, 1)).limit(1)
+  const config = rows[0]
+  return config || { startDate: null, endDate: null, durationMinutes: 60 }
 })

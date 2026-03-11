@@ -1,5 +1,7 @@
 import { getDb } from '../../utils/db'
-import { compareIps } from '../../utils/ipv4'
+import { testSessions } from '../../db/schema'
+import { eq } from 'drizzle-orm'
+import { compareIps } from '../../../utils/ipv4'
 
 export default defineEventHandler(async (event) => {
   const sessionCookie = getCookie(event, 'session')
@@ -9,10 +11,10 @@ export default defineEventHandler(async (event) => {
   const { sessionId, answers } = body
 
   const db = getDb()
-  const session = db.prepare('SELECT * FROM test_sessions WHERE id = ?').get(sessionId) as any
-  if (!session) throw createError({ statusCode: 404, message: 'Session not found' })
+  const rows = await db.select().from(testSessions).where(eq(testSessions.id, sessionId)).limit(1)
+  if (rows.length === 0) throw createError({ statusCode: 404, message: 'Session not found' })
 
-  const tasks = JSON.parse(session.tasks_json)
+  const tasks = JSON.parse(rows[0].tasksJson)
   let score = 0
   let total = 0
 
@@ -57,9 +59,14 @@ export default defineEventHandler(async (event) => {
     if (compareIps(answers.level6?.[i]?.broadcast || '', correct.broadcastAddr)) score++
   }
 
-  db.prepare(
-    'UPDATE test_sessions SET answers_json = ?, score = ?, total_questions = ?, submitted_at = datetime("now") WHERE id = ?'
-  ).run(JSON.stringify(answers), score, total, sessionId)
+  await db.update(testSessions)
+    .set({
+      answersJson: JSON.stringify(answers),
+      score,
+      totalQuestions: total,
+      submittedAt: new Date(),
+    })
+    .where(eq(testSessions.id, sessionId))
 
   return { score, total, percentage: Math.round((score / total) * 100) }
 })
