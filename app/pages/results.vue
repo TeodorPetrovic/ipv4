@@ -3,11 +3,11 @@ const { data: sessions, refresh } = await useFetch('/api/results')
 const selected = ref<any>(null)
 
 const columns = [
-  { key: 'student_name', label: 'Student Name' },
-  { key: 'student_id', label: 'Student ID' },
-  { key: 'score_display', label: 'Score' },
-  { key: 'percentage', label: '%' },
-  { key: 'submitted_at', label: 'Submitted' }
+  { accessorKey: 'student_name', header: 'Student Name' },
+  { accessorKey: 'student_id', header: 'Student ID' },
+  { accessorKey: 'score_display', header: 'Score' },
+  { accessorKey: 'percentage', header: '%' },
+  { accessorKey: 'submitted_at', header: 'Submitted' }
 ]
 
 const rows = computed(() => (sessions.value as any[] || []).map((s: any) => ({
@@ -27,6 +27,10 @@ function badgeColor(row: any): string {
 function selectRow(row: any) {
   selected.value = selected.value?.id === row.id ? null : row
 }
+
+function handleRowSelect(_event: Event, row: any) {
+  selectRow(row.original)
+}
 </script>
 
 <template>
@@ -41,10 +45,10 @@ function selectRow(row: any) {
       </div>
 
       <UCard>
-        <UTable :rows="rows" :columns="columns" @select="selectRow">
-          <template #percentage-data="{ row }">
-            <UBadge :color="badgeColor(row)">
-              {{ row.percentage }}
+        <UTable :data="rows" :columns="columns" :on-select="handleRowSelect">
+          <template #percentage-cell="{ row }">
+            <UBadge :color="badgeColor(row.original)">
+              {{ row.original.percentage }}
             </UBadge>
           </template>
         </UTable>

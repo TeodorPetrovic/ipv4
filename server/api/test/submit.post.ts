@@ -1,72 +1,9 @@
-import { getDb } from '../../utils/db'
-import { testSessions } from '../../db/schema'
-import { eq } from 'drizzle-orm'
-import { compareIps } from '../../../utils/ipv4'
+import { submitTestAnswers } from '../../utils/service/test'
 
 export default defineEventHandler(async (event) => {
   const sessionCookie = getCookie(event, 'session')
   if (!sessionCookie) throw createError({ statusCode: 401, message: 'Not authenticated' })
 
   const body = await readBody(event)
-  const { sessionId, answers } = body
-
-  const db = getDb()
-  const rows = await db.select().from(testSessions).where(eq(testSessions.id, sessionId)).limit(1)
-  if (rows.length === 0) throw createError({ statusCode: 404, message: 'Session not found' })
-
-  const tasks = JSON.parse(rows[0].tasksJson)
-  let score = 0
-  let total = 0
-
-  // Grade level 1
-  for (let i = 0; i < tasks.level1.length; i++) {
-    total++
-    if (compareIps(answers.level1?.[i] || '', tasks.level1[i].decimal)) score++
-  }
-
-  // Grade level 2
-  for (let i = 0; i < tasks.level2.length; i++) {
-    total++
-    if ((answers.level2?.[i] || '') === tasks.level2[i].class) score++
-  }
-
-  // Grade level 3
-  for (let i = 0; i < tasks.level3.length; i++) {
-    total += 2
-    if (compareIps(answers.level3?.[i]?.network || '', tasks.level3[i].networkAddr)) score++
-    if (compareIps(answers.level3?.[i]?.broadcast || '', tasks.level3[i].broadcastAddr)) score++
-  }
-
-  // Grade level 4
-  for (let i = 0; i < tasks.level4.length; i++) {
-    total++
-    if (parseInt(answers.level4?.[i] || '0') === tasks.level4[i].hostCount) score++
-  }
-
-  // Grade level 5
-  for (let i = 0; i < tasks.level5.length; i++) {
-    total++
-    const expected = tasks.level5[i].sameNetwork ? 'Yes' : 'No'
-    if ((answers.level5?.[i] || '') === expected) score++
-  }
-
-  // Grade level 6
-  for (let i = 0; i < tasks.level6.subnets.length; i++) {
-    total += 3
-    const correct = tasks.level6.subnets[i]
-    if (compareIps(answers.level6?.[i]?.network || '', correct.networkAddr)) score++
-    if (compareIps(answers.level6?.[i]?.mask || '', correct.mask)) score++
-    if (compareIps(answers.level6?.[i]?.broadcast || '', correct.broadcastAddr)) score++
-  }
-
-  await db.update(testSessions)
-    .set({
-      answersJson: JSON.stringify(answers),
-      score,
-      totalQuestions: total,
-      submittedAt: new Date(),
-    })
-    .where(eq(testSessions.id, sessionId))
-
-  return { score, total, percentage: Math.round((score / total) * 100) }
+  return submitTestAnswers(body.sessionId, body.answers)
 })

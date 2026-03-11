@@ -36,12 +36,12 @@ async function login() {
       </template>
 
       <div class="space-y-4">
-        <UFormGroup label="Full Name">
+        <UFormField label="Full Name">
           <UInput v-model="name" placeholder="Enter your full name" size="lg" @keyup.enter="login" />
-        </UFormGroup>
-        <UFormGroup label="Student ID">
+        </UFormField>
+        <UFormField label="Student ID">
           <UInput v-model="studentId" placeholder="Enter your student ID" size="lg" @keyup.enter="login" />
-        </UFormGroup>
+        </UFormField>
         <UAlert v-if="error" color="red" :title="error" />
       </div>
 

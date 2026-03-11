@@ -53,23 +53,23 @@ async function saveConfig() {
       </template>
 
       <div v-if="!pinVerified" class="space-y-4">
-        <UFormGroup label="Admin PIN">
+        <UFormField label="Admin PIN">
           <UInput v-model="pin" type="password" placeholder="Enter PIN" @keyup.enter="verifyPin" />
-        </UFormGroup>
+        </UFormField>
         <UAlert v-if="pinError" color="red" :title="pinError" />
         <UButton @click="verifyPin">Verify PIN</UButton>
       </div>
 
       <div v-else class="space-y-4">
-        <UFormGroup label="Test Start Date/Time">
+        <UFormField label="Test Start Date/Time">
           <UInput v-model="startDate" type="datetime-local" />
-        </UFormGroup>
-        <UFormGroup label="Test End Date/Time">
+        </UFormField>
+        <UFormField label="Test End Date/Time">
           <UInput v-model="endDate" type="datetime-local" />
-        </UFormGroup>
-        <UFormGroup label="Duration (minutes)">
+        </UFormField>
+        <UFormField label="Duration (minutes)">
           <UInput v-model="duration" type="number" min="1" />
-        </UFormGroup>
+        </UFormField>
         <UAlert v-if="saveMsg" color="green" :title="saveMsg" />
         <UAlert v-if="saveError" color="red" :title="saveError" />
         <UButton :loading="saving" @click="saveConfig">Save Configuration</UButton>

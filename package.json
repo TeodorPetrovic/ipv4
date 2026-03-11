@@ -1,19 +1,21 @@
 {
-  "name": "ipv4-test-platform",
+  "name": "ipv4",
+  "type": "module",
   "private": true,
   "scripts": {
-    "dev": "nuxt dev",
     "build": "nuxt build",
-    "preview": "nuxt preview",
+    "dev": "nuxt dev",
     "generate": "nuxt generate",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/ui": "^2.21.0",
+    "@nuxt/ui": "^4.5.1",
+    "nuxt": "^4.3.1",
     "drizzle-orm": "^1.0.0-beta.16-2ffd1a5",
     "mysql2": "^3.19.1",
-    "nuxt": "^3.14.0"
+    "vue": "^3.5.30",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "drizzle-kit": "^1.0.0-beta.16-2ffd1a5",

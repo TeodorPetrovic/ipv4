@@ -1,4 +1,4 @@
-import { int, varchar, text, datetime, mysqlTable } from 'drizzle-orm/mysql-core'
+import { datetime, int, mysqlTable, text, varchar } from 'drizzle-orm/mysql-core'
 
 export const testConfig = mysqlTable('test_config', {
   id: int('id').primaryKey(),

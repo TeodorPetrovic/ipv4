@@ -1,17 +1,18 @@
-import { getDb } from '../utils/db'
 import mysql from 'mysql2/promise'
+
+import { db } from '../database'
 
 // Create the database and tables on server startup
 export default defineNitroPlugin(async () => {
   // First ensure the database exists (connect without specifying a DB)
   try {
     const conn = await mysql.createConnection({
-      host: process.env.MYSQL_HOST || 'localhost',
-      port: parseInt(process.env.MYSQL_PORT || '3306'),
-      user: process.env.MYSQL_USER || 'root',
-      password: process.env.MYSQL_PASSWORD || '',
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT ?? '3306'),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
     })
-    const dbName = process.env.MYSQL_DATABASE || 'ipv4_test'
+    const dbName = process.env.DB_NAME
     await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``)
     await conn.end()
   } catch (err) {
@@ -20,7 +21,6 @@ export default defineNitroPlugin(async () => {
 
   // Now run DDL via the pool
   try {
-    const db = getDb()
     const client = (db as any).$client as mysql.Pool
 
     await client.query(`
