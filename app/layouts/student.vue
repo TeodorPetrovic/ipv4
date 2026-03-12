@@ -2,6 +2,7 @@
 import type { AuthState } from '#shared/types/api'
 
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+const colorMode = useColorMode()
 
 const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
@@ -24,6 +25,10 @@ const profileItems = computed(() => [[
     },
   },
 ]])
+
+function toggleColorMode() {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+}
 </script>
 
 <template>
@@ -32,7 +37,7 @@ const profileItems = computed(() => [[
       <UContainer class="flex h-16 items-center justify-between gap-4">
         <p class="text-lg font-semibold">IP Singidunum</p>
 
-        <div class="ml-auto">
+        <div class="ml-auto flex items-center gap-2">
           <UDropdownMenu :items="profileItems">
             <UUser
               :name="authState?.student?.name || 'Student'"
@@ -40,6 +45,14 @@ const profileItems = computed(() => [[
               class="cursor-pointer rounded-md px-2 py-1.5 hover:bg-elevated"
             />
           </UDropdownMenu>
+
+          <UButton
+            color="neutral"
+            variant="outline"
+            :icon="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'"
+            aria-label="Toggle color mode"
+            @click="toggleColorMode"
+          />
         </div>
       </UContainer>
     </header>

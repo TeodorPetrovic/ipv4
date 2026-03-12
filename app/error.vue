@@ -19,7 +19,7 @@ async function goTests() {
 <template>
   <main class="min-h-screen bg-linear-to-b from-slate-50 to-white px-6 py-10">
     <div class="mx-auto max-w-xl">
-      <UCard class="border border-gray-200">
+      <UCard class="border border-default">
         <template #header>
           <div class="space-y-1">
             <p class="text-sm font-semibold uppercase tracking-wide text-muted">
@@ -49,3 +49,4 @@ async function goTests() {
     </div>
   </main>
 </template>
+

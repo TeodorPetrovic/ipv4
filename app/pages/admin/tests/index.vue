@@ -96,7 +96,7 @@ const columns: TableColumn<AdminTest>[] = [
       :title="pageError"
     />
 
-    <div class="table-shell overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+    <div class="table-shell overflow-hidden rounded-lg border border-default">
       <UTable
         v-model:global-filter="globalFilter"
         :data="tests"
@@ -144,3 +144,4 @@ const columns: TableColumn<AdminTest>[] = [
     </div>
   </div>
 </template>
+

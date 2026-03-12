@@ -87,8 +87,8 @@ if (authState.value?.isAdmin) {
       <UCard>
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 class="text-2xl font-semibold text-slate-950">{{ result.studentName }} · Attempt {{ result.attemptNumber }}</h1>
-            <p class="mt-1 text-sm text-slate-500">{{ result.studentId }} · {{ result.testTitle }}</p>
+            <h1 class="text-2xl font-semibold text-highlighted">{{ result.studentName }} · Attempt {{ result.attemptNumber }}</h1>
+            <p class="mt-1 text-sm text-muted">{{ result.studentId }} · {{ result.testTitle }}</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
@@ -108,26 +108,26 @@ if (authState.value?.isAdmin) {
       <UCard>
         <div class="grid gap-4 text-sm sm:grid-cols-3">
           <div>
-            <p class="text-xs uppercase tracking-[0.12em] text-slate-500">Started</p>
-            <p class="mt-1 text-slate-900">{{ formatDate(result.startedAt) }}</p>
+            <p class="text-xs uppercase tracking-[0.12em] text-muted">Started</p>
+            <p class="mt-1 text-toned">{{ formatDate(result.startedAt) }}</p>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-[0.12em] text-slate-500">Deadline</p>
-            <p class="mt-1 text-slate-900">{{ formatDate(result.deadlineAt) }}</p>
+            <p class="text-xs uppercase tracking-[0.12em] text-muted">Deadline</p>
+            <p class="mt-1 text-toned">{{ formatDate(result.deadlineAt) }}</p>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-[0.12em] text-slate-500">Submitted</p>
-            <p class="mt-1 text-slate-900">{{ formatDate(result.submittedAt) }}</p>
+            <p class="text-xs uppercase tracking-[0.12em] text-muted">Submitted</p>
+            <p class="mt-1 text-toned">{{ formatDate(result.submittedAt) }}</p>
           </div>
         </div>
       </UCard>
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 1</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 1</h2>
         </template>
         <div class="space-y-3 text-sm">
-          <div v-for="(row, index) in result.sections.level1" :key="`l1-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level1" :key="`l1-${index}`" class="rounded-xl border border-default p-3">
             <p class="font-mono">{{ row.binary }}</p>
             <p>Студент: <span class="font-mono">{{ row.studentAnswer || 'Без одговора' }}</span></p>
             <p>Тачно: <span class="font-mono">{{ row.correctAnswer }}</span></p>
@@ -137,10 +137,10 @@ if (authState.value?.isAdmin) {
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 2</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 2</h2>
         </template>
         <div class="space-y-3 text-sm">
-          <div v-for="(row, index) in result.sections.level2" :key="`l2-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level2" :key="`l2-${index}`" class="rounded-xl border border-default p-3">
             <p class="font-mono">{{ row.ip }}</p>
             <p>Студент: {{ row.studentAnswer || 'Без одговора' }}</p>
             <p>Тачно: {{ row.correctAnswer }}</p>
@@ -150,10 +150,10 @@ if (authState.value?.isAdmin) {
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 3</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 3</h2>
         </template>
         <div class="space-y-3 text-sm">
-          <div v-for="(row, index) in result.sections.level3" :key="`l3-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level3" :key="`l3-${index}`" class="rounded-xl border border-default p-3">
             <p class="font-mono">{{ row.hostIp }}</p>
             <p>Мрежа студ.: <span class="font-mono">{{ row.studentNetwork || 'Без одговора' }}</span></p>
             <p>Тачна мрежа: <span class="font-mono">{{ row.correctNetwork }}</span></p>
@@ -165,10 +165,10 @@ if (authState.value?.isAdmin) {
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 4</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 4</h2>
         </template>
         <div class="space-y-3 text-sm">
-          <div v-for="(row, index) in result.sections.level4" :key="`l4-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level4" :key="`l4-${index}`" class="rounded-xl border border-default p-3">
             <p class="font-mono">{{ row.mask }}</p>
             <p>Студент: {{ row.studentAnswer || 'Без одговора' }}</p>
             <p>Тачно: {{ row.correctAnswer }}</p>
@@ -178,10 +178,10 @@ if (authState.value?.isAdmin) {
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 5</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 5</h2>
         </template>
         <div class="space-y-3 text-sm">
-          <div v-for="(row, index) in result.sections.level5" :key="`l5-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level5" :key="`l5-${index}`" class="rounded-xl border border-default p-3">
             <p class="font-mono">{{ row.addressCidr }}</p>
             <p>Студент: {{ yesNoLabel(row.studentAnswer) }}</p>
             <p>Тачно: {{ yesNoLabel(row.correctAnswer) }}</p>
@@ -191,10 +191,10 @@ if (authState.value?.isAdmin) {
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 6</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 6</h2>
         </template>
         <div class="space-y-3 text-sm">
-          <div v-for="(row, index) in result.sections.level6" :key="`l6-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level6" :key="`l6-${index}`" class="rounded-xl border border-default p-3">
             <p class="font-mono">{{ row.ip1 }} · {{ row.ip2 }} · {{ row.mask }}</p>
             <p>Студент: {{ yesNoLabel(row.studentAnswer) }}</p>
             <p>Тачно: {{ yesNoLabel(row.correctAnswer) }}</p>
@@ -204,11 +204,11 @@ if (authState.value?.isAdmin) {
 
       <UCard>
         <template #header>
-          <h2 class="text-lg font-semibold text-slate-950">Ниво 7</h2>
+          <h2 class="text-lg font-semibold text-highlighted">Ниво 7</h2>
         </template>
         <div class="space-y-3 text-sm">
           <p class="text-muted">Базна мрежа: {{ result.sections.level7.baseNetwork }}/{{ result.sections.level7.baseCidr }}</p>
-          <div v-for="(row, index) in result.sections.level7.subnets" :key="`l7-${index}`" class="rounded-xl border border-slate-200 p-3">
+          <div v-for="(row, index) in result.sections.level7.subnets" :key="`l7-${index}`" class="rounded-xl border border-default p-3">
             <p>{{ row.name }} · {{ row.hosts }} хостова</p>
             <p>Мрежа студ.: <span class="font-mono">{{ row.studentNetwork || 'Без одговора' }}</span></p>
             <p>Тачна мрежа: <span class="font-mono">{{ row.correctNetwork }}</span></p>
@@ -233,3 +233,4 @@ if (authState.value?.isAdmin) {
     </div>
   </div>
 </template>
+

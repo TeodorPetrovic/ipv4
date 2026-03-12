@@ -3,6 +3,7 @@ import type { AuthState } from '#shared/types/api'
 
 const route = useRoute()
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+const colorMode = useColorMode()
 
 const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
@@ -57,6 +58,10 @@ async function logout() {
   })
 
   await navigateTo('/admin')
+}
+
+function toggleColorMode() {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
 }
 </script>
 
@@ -122,6 +127,18 @@ async function logout() {
             <div class="flex items-center gap-2">
               <UDashboardSidebarCollapse variant="ghost" />
               <span class="font-semibold text-highlighted">{{ pageTitle }}</span>
+            </div>
+          </template>
+
+          <template #right>
+            <div class="flex items-center gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :icon="colorMode.value === 'dark' ? 'i-lucide-sun' : 'i-lucide-moon'"
+                aria-label="Toggle color mode"
+                @click="toggleColorMode"
+              />
             </div>
           </template>
         </UDashboardNavbar>

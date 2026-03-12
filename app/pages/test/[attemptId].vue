@@ -314,13 +314,13 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="mt-2 text-lg font-semibold text-slate-950">IP конвертор</h2>
+                <h2 class="mt-2 text-lg font-semibold text-highlighted">IP конвертор</h2>
               </div>
             </template>
 
             <div class="space-y-4">
               <div class="space-y-2">
-                <p class="text-sm font-medium text-slate-800">Децимални у бинарни</p>
+                <p class="text-sm font-medium text-toned">Децимални у бинарни</p>
                 <div class="grid grid-cols-2 gap-2">
                   <UInput v-model="decimalOctetInput" class="w-full" />
                   <UInput :model-value="decimalToBinaryOutput" class="w-full" readonly />
@@ -328,7 +328,7 @@ async function submitAnswers() {
               </div>
 
               <div class="space-y-2">
-                <p class="text-sm font-medium text-slate-800">Бинарни у децимални</p>
+                <p class="text-sm font-medium text-toned">Бинарни у децимални</p>
                 <div class="grid grid-cols-2 gap-2">
                   <UInput v-model="binaryOctetInput" class="w-full" />
                   <UInput :model-value="binaryToDecimalOutput" class="w-full" readonly />
@@ -343,16 +343,16 @@ async function submitAnswers() {
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div class="space-y-3">
                 <div class="h-full">
-                  <h1 class="text-3xl my-auto font-semibold text-slate-950 pt-2">{{ data.attempt.title }}</h1>
+                  <h1 class="text-3xl my-auto font-semibold text-highlighted pt-2">{{ data.attempt.title }}</h1>
                 </div>
               </div>
 
-              <div v-if="data.attempt.canSubmit" class="px-4 py-3 lg:min-w-56">
+              <div v-if="data.attempt.canSubmit" class="rounded-xl border border-default bg-elevated/40 px-4 py-3 lg:min-w-56">
                 <p class="text font-bold uppercase tracking-wide">Преостало време</p>
                 <ClientOnly>
                   <p class="mt-1 font-mono text-3xl font-bold" :class="remainingTimeColor">{{ remainingTimeLabel }}</p>
                   <template #fallback>
-                    <p class="mt-1 font-mono text-3xl font-bold text-slate-400">--:--:--</p>
+                    <p class="mt-1 font-mono text-3xl font-bold text-muted">--:--:--</p>
                   </template>
                 </ClientOnly>
               </div>
@@ -385,8 +385,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 1 · Превођење из бинарног у децимални облик</h2>
-                <p class="mt-1 text-sm text-slate-500">Претворите бинарну IPv4 адресу у децималну форму.</p>
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 1 · Превођење из бинарног у децимални облик</h2>
+                <p class="mt-1 text-sm text-muted">Претворите бинарну IPv4 адресу у децималну форму.</p>
               </div>
             </template>
 
@@ -394,15 +394,15 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level1"
                 :key="row.id"
-                class="grid gap-3 rounded-2xl border border-slate-200 p-4 lg:grid-cols-[1fr_1fr]"
+                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_1fr]"
               >
                 <div>
-                  <p class="text-xs font-medium uppercase text-slate-500">Бинарни</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.binary }}</p>
+                  <p class="text-xs font-medium uppercase text-muted">Бинарни</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.binary }}</p>
                 </div>
 
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase text-slate-500">Децимални одговор</p>
+                  <p class="text-xs font-medium uppercase text-muted">Децимални одговор</p>
                   <UInput
                     v-model="answers.level1[index]"
                     class="w-full"
@@ -410,7 +410,7 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level1[index], row.correctAnswer, 'ip'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
                     <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
                   </div>
                 </div>
@@ -421,8 +421,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 2 · IPv4 класа</h2>
-                <p class="mt-1 text-sm text-slate-500">Одредите класу сваке IPv4 адресе.</p>
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 2 · IPv4 класа</h2>
+                <p class="mt-1 text-sm text-muted">Одредите класу сваке IPv4 адресе.</p>
               </div>
             </template>
 
@@ -430,15 +430,15 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level2"
                 :key="row.id"
-                class="grid gap-3 rounded-2xl border border-slate-200 p-4 lg:grid-cols-[1fr_220px]"
+                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_220px]"
               >
                 <div>
-                  <p class="text-xs font-medium uppercase  text-slate-500">IP адреса</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.ip }}</p>
+                  <p class="text-xs font-medium uppercase  text-muted">IP адреса</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.ip }}</p>
                 </div>
 
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase text-slate-500">Класа</p>
+                  <p class="text-xs font-medium uppercase text-muted">Класа</p>
                   <USelect
                     v-model="answers.level2[index]"
                     class="w-full"
@@ -447,7 +447,7 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level2[index], row.correctAnswer, 'text'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
                     <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
                   </div>
                 </div>
@@ -458,8 +458,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 3 · Мрежна и емисиона адреса</h2>
-                <p class="mt-1 text-sm text-slate-500">Израчунајте мрежну и емисиону адресу за сваки пар хост/CIDR.</p>
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 3 · Мрежна и емисиона адреса</h2>
+                <p class="mt-1 text-sm text-muted">Израчунајте мрежну и емисиону адресу за сваки пар хост/CIDR.</p>
               </div>
             </template>
 
@@ -467,15 +467,15 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level3"
                 :key="row.id"
-                class="grid gap-4 rounded-2xl border border-slate-200 p-4 lg:grid-cols-[1fr_1fr_1fr]"
+                class="grid gap-4 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_1fr_1fr]"
               >
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-slate-500">Адреса хоста</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.hostIp }}</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Адреса хоста</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.hostIp }}</p>
                 </div>
 
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-slate-500">Мрежна адреса</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Мрежна адреса</p>
                   <UInput
                     v-model="answers.level3[index]!.network"
                     class="w-full"
@@ -483,13 +483,13 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level3[index]?.network, row.correctNetwork, 'ip'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
                     <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
                   </div>
                 </div>
 
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-slate-500">Емисиона адреса</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Емисиона адреса</p>
                   <UInput
                     v-model="answers.level3[index]!.broadcast"
                     class="w-full"
@@ -497,7 +497,7 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level3[index]?.broadcast, row.correctBroadcast, 'ip'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
                     <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
                   </div>
                 </div>
@@ -508,8 +508,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 4 · Капацитет мреже</h2>
-                <p class="mt-1 text-sm text-slate-500">Упишите број употребљивих хостова за сваку маску подмреже.</p>
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 4 · Капацитет мреже</h2>
+                <p class="mt-1 text-sm text-muted">Упишите број употребљивих хостова за сваку маску подмреже.</p>
               </div>
             </template>
 
@@ -517,15 +517,15 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level4"
                 :key="row.id"
-                class="grid gap-3 rounded-2xl border border-slate-200 p-4 lg:grid-cols-[1fr_240px]"
+                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_240px]"
               >
                 <div>
-                  <p class="text-xs font-medium uppercase text-slate-500">Маска подмреже</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.mask }}</p>
+                  <p class="text-xs font-medium uppercase text-muted">Маска подмреже</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.mask }}</p>
                 </div>
 
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase text-slate-500">Употребљиви хостови</p>
+                  <p class="text-xs font-medium uppercase text-muted">Употребљиви хостови</p>
                   <UInput
                     v-model="answers.level4[index]"
                     class="w-full"
@@ -533,7 +533,7 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level4[index], row.correctAnswer, 'number'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
                     <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
                   </div>
                 </div>
@@ -544,8 +544,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 5 · Адресе рачунара са јавним Интернет адресама</h2>
-                <p class="mt-1 text-sm text-slate-500">Одредите да ли се дата адреса хоста може користити за јавно Интернет адресирање.</p>
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 5 · Адресе рачунара са јавним Интернет адресама</h2>
+                <p class="mt-1 text-sm text-muted">Одредите да ли се дата адреса хоста може користити за јавно Интернет адресирање.</p>
               </div>
             </template>
 
@@ -553,14 +553,14 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level5"
                 :key="row.id"
-                class="grid gap-3 rounded-2xl border border-slate-200 p-4 lg:grid-cols-[1fr_220px]"
+                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_220px]"
               >
                 <div>
-                  <p class="text-xs font-medium uppercase text-slate-500">Адреса</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.addressCidr }}</p>
+                  <p class="text-xs font-medium uppercase text-muted">Адреса</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.addressCidr }}</p>
                 </div>
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-slate-500">Употребљива на Интернету?</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Употребљива на Интернету?</p>
                   <USelect
                     v-model="answers.level5[index]"
                     class="w-full"
@@ -569,7 +569,7 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level5[index], row.correctAnswer, 'text'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
                     <UInput :model-value="yesNoLabel(row.correctAnswer)" readonly class="w-full field-correct" />
                   </div>
                 </div>
@@ -580,8 +580,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 6 · Локалне и удаљене адресе</h2>
-                <p class="mt-1 text-sm text-slate-500">
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 6 · Локалне и удаљене адресе</h2>
+                <p class="mt-1 text-sm text-muted">
                   Одредите да ли сваки пар адреса припада истој мрежи.
                 </p>
               </div>
@@ -591,22 +591,22 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level6"
                 :key="row.id"
-                class="grid gap-3 rounded-2xl border border-slate-200 p-4 lg:grid-cols-[1fr_1fr_1fr_220px]"
+                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_1fr_1fr_220px]"
               >
                 <div>
-                  <p class="text-xs font-medium uppercase  text-slate-500">Адреса 1</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.ip1 }}</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Адреса 1</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.ip1 }}</p>
                 </div>
                 <div>
-                  <p class="text-xs font-medium uppercase  text-slate-500">Адреса 2</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.ip2 }}</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Адреса 2</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.ip2 }}</p>
                 </div>
                 <div>
-                  <p class="text-xs font-medium uppercase  text-slate-500">Маска подмреже</p>
-                  <p class="mt-2 font-mono text-sm text-slate-900">{{ row.mask }}</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Маска подмреже</p>
+                  <p class="mt-2 font-mono text-sm text-toned">{{ row.mask }}</p>
                 </div>
                 <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-slate-500">Иста мрежа?</p>
+                  <p class="text-xs font-medium uppercase  text-muted">Иста мрежа?</p>
                   <USelect
                     v-model="answers.level6[index]"
                     class="w-full"
@@ -615,7 +615,7 @@ async function submitAnswers() {
                     :class="fieldClass(compareValue(answers.level6[index], row.correctAnswer, 'text'))"
                   />
                   <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-slate-500">Тачан одговор</p>
+                    <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
                     <UInput :model-value="yesNoLabel(row.correctAnswer)" readonly class="w-full field-correct" />
                   </div>
                 </div>
@@ -626,8 +626,8 @@ async function submitAnswers() {
           <UCard>
             <template #header>
               <div>
-                <h2 class="text-lg font-semibold text-slate-950">Ниво 7 · Пројекат подмрежавања</h2>
-                <p class="mt-1 text-sm text-slate-500">
+                <h2 class="text-lg font-semibold text-highlighted">Ниво 7 · Пројекат подмрежавања</h2>
+                <p class="mt-1 text-sm text-muted">
                   Поделите {{ data.sections.level7.baseNetwork }}/{{ data.sections.level7.baseCidr }} на захтеване величине подмрежа.
                 </p>
               </div>
@@ -637,18 +637,18 @@ async function submitAnswers() {
               <div
                 v-for="(row, index) in data.sections.level7.subnets"
                 :key="row.id"
-                class="space-y-4 rounded-2xl border border-slate-200 p-4"
+                class="space-y-4 rounded-2xl border border-default bg-elevated/40 p-4"
               >
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-xs font-medium uppercase  text-slate-500">{{ row.name }}</p>
-                    <p class="mt-1 text-sm text-slate-900">{{ row.hosts }} хостова потребно</p>
+                    <p class="text-xs font-medium uppercase  text-muted">{{ row.name }}</p>
+                    <p class="mt-1 text-sm text-toned">{{ row.hosts }} хостова потребно</p>
                   </div>
                 </div>
 
                 <div class="grid gap-4 lg:grid-cols-3">
                   <div class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-slate-500">Мрежна адреса</p>
+                    <p class="text-xs font-medium uppercase  text-muted">Мрежна адреса</p>
                     <UInput
                       v-model="answers.level7[index]!.network"
                       class="w-full"
@@ -656,13 +656,13 @@ async function submitAnswers() {
                       :class="fieldClass(compareValue(answers.level7[index]?.network, row.correctNetwork, 'ip'))"
                     />
                     <div v-if="showSolutions" class="space-y-2">
-                      <p class="text-xs font-medium uppercase  text-slate-500">Тачан одговор</p>
+                      <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
                       <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
                     </div>
                   </div>
 
                   <div class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-slate-500">Маска подмреже</p>
+                    <p class="text-xs font-medium uppercase  text-muted">Маска подмреже</p>
                     <UInput
                       v-model="answers.level7[index]!.mask"
                       class="w-full"
@@ -670,13 +670,13 @@ async function submitAnswers() {
                       :class="fieldClass(compareValue(answers.level7[index]?.mask, row.correctMask, 'ip'))"
                     />
                     <div v-if="showSolutions" class="space-y-2">
-                      <p class="text-xs font-medium uppercase  text-slate-500">Тачан одговор</p>
+                      <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
                       <UInput :model-value="row.correctMask || ''" readonly class="w-full field-correct" />
                     </div>
                   </div>
 
                   <div class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-slate-500">Емисиона адреса</p>
+                    <p class="text-xs font-medium uppercase  text-muted">Емисиона адреса</p>
                     <UInput
                       v-model="answers.level7[index]!.broadcast"
                       class="w-full"
@@ -684,7 +684,7 @@ async function submitAnswers() {
                       :class="fieldClass(compareValue(answers.level7[index]?.broadcast, row.correctBroadcast, 'ip'))"
                     />
                     <div v-if="showSolutions" class="space-y-2">
-                      <p class="text-xs font-medium uppercase  text-slate-500">Тачан одговор</p>
+                      <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
                       <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
                     </div>
                   </div>
@@ -710,3 +710,5 @@ async function submitAnswers() {
       </div>
   </div>
 </template>
+
+

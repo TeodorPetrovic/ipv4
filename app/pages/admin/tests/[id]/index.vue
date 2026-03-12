@@ -127,7 +127,7 @@ if (authState.value?.isAdmin) {
       :title="resultsError"
     />
 
-    <div class="table-shell overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+    <div class="table-shell overflow-hidden rounded-lg border border-default">
       <UTable
         :data="results"
         :columns="columns"
@@ -179,3 +179,4 @@ if (authState.value?.isAdmin) {
     </div>
   </div>
 </template>
+
