@@ -1,9 +1,6 @@
 <script setup lang="ts">
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (authState.value?.student) {
   await navigateTo('/tests')

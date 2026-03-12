@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { CalendarDate, Time } from '@internationalized/date'
-import type { AuthState } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
   title: 'Create Test',
 })
 
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')

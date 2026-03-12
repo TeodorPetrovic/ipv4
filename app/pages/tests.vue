@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import type { AuthState, StudentTest } from '#shared/types/api'
+import type { StudentTest } from '#shared/types/api'
 
 definePageMeta({
   layout: 'student',
@@ -14,14 +14,6 @@ const globalFilter = ref('')
 const tests = ref<StudentTest[]>([])
 const confirmOpen = ref(false)
 const selectedTest = ref<StudentTest | null>(null)
-
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
-
-if (!authState.value?.student) {
-  await navigateTo('/login')
-}
 
 async function loadTests() {
   loadingPage.value = true
@@ -38,9 +30,7 @@ async function loadTests() {
   }
 }
 
-if (authState.value?.student) {
-  await loadTests()
-}
+await loadTests()
 
 function actionLabel(_test: StudentTest) {
   return 'Start'
@@ -180,4 +170,3 @@ async function openTest(test: StudentTest) {
     </UModal>
   </div>
 </template>
-

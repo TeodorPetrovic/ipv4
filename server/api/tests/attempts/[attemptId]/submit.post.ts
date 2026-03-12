@@ -13,7 +13,8 @@ export default withSafeApi(async (event) => {
   }
 
   const session = requireStudentSession(event)
-  const body = await readBody<{ answers?: Record<string, unknown>; autoSubmit?: boolean }>(event)
+  const body = await readBody<{ answers?: Record<string, unknown> }>(event)
+  const answers = (body?.answers ?? {}) as Record<string, unknown>
 
-  return submitAttemptForStudent(attemptId, session, body.answers as any, Boolean(body.autoSubmit))
+  return submitAttemptForStudent(attemptId, session, answers as any)
 })

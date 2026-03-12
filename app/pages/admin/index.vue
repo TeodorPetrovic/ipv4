@@ -3,11 +3,8 @@ const email = ref('tpetrovic@singimail.rs')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession, refreshAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (authState.value?.isAdmin) {
   await navigateTo('/admin/tests')
@@ -26,6 +23,7 @@ async function login() {
       },
     })
 
+    await refreshAuthSession()
     await navigateTo('/admin/tests')
   } catch (fetchError: any) {
     error.value = fetchError.data?.message || 'Admin login failed'

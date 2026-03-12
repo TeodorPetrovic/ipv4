@@ -7,9 +7,8 @@ definePageMeta({
 const route = useRoute()
 const studentId = Number(route.params.id)
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const { data: authState } = await useFetch('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 const loading = ref(false)
 const error = ref('')
@@ -28,7 +27,6 @@ const { data, error: fetchError } = await useFetch<{
   name: string
 }>(`/api/students/${studentId}`, {
   headers: requestHeaders,
-  immediate: Boolean(authState.value?.isAdmin),
 })
 
 if (fetchError.value) {

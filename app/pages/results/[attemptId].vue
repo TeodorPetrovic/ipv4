@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AuthState } from '#shared/types/api'
 import type { StudentAttemptResultsPayload } from '#shared/types/test-attempt'
 import { compareSubmittedValue, resultFieldClass, yesNoLabel } from '~/utils/attempt-results'
 
@@ -11,28 +10,19 @@ const route = useRoute()
 const attemptId = Number(route.params.attemptId)
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
-
 if (!Number.isFinite(attemptId)) {
   await navigateTo('/tests')
-}
-
-if (!authState.value?.student) {
-  await navigateTo('/login')
 }
 
 const { data, error } = await useFetch<StudentAttemptResultsPayload>(
   `/api/tests/attempts/${attemptId}/results`,
   {
     headers: requestHeaders,
-    immediate: Boolean(authState.value?.student),
   },
 )
 
 if ((error.value as any)?.statusCode === 401) {
-  await navigateTo('/login')
+  await navigateTo('/login', { replace: true })
 }
 </script>
 
@@ -303,36 +293,45 @@ if ((error.value as any)?.statusCode === 401) {
                 <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Подмрежа</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Хостова</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Мрежна адреса</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Тачна мрежна</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Маска подмреже</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Тачна маска</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Емисиона адреса</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold text-muted">Тачна емисиона</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in data.sections.level7.subnets" :key="row.id" class="border-b border-default last:border-0">
-                <td class="px-4 py-3 text-center font-medium text-toned">{{ row.name }}</td>
-                <td class="px-4 py-3 text-center text-toned">{{ row.hosts }}</td>
-                <td class="px-4 py-3 text-center">
-                  <UInput :model-value="row.studentNetwork || ''" readonly class="w-full" :class="resultFieldClass(compareSubmittedValue(row.studentNetwork, row.correctNetwork, 'ip'))" />
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <UInput :model-value="row.studentMask || ''" readonly class="w-full" :class="resultFieldClass(compareSubmittedValue(row.studentMask, row.correctMask, 'ip'))" />
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <UInput :model-value="row.correctMask || ''" readonly class="w-full field-correct" />
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <UInput :model-value="row.studentBroadcast || ''" readonly class="w-full" :class="resultFieldClass(compareSubmittedValue(row.studentBroadcast, row.correctBroadcast, 'ip'))" />
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
-                </td>
-              </tr>
+              <template v-for="row in data.sections.level7.subnets" :key="row.id">
+                <tr class="border-b border-default">
+                  <td class="px-4 py-3 text-center font-medium text-toned">{{ row.name }}</td>
+                  <td class="px-4 py-3 text-center text-toned">{{ row.hosts }}</td>
+                  <td class="px-4 py-3">
+                    <p class="mb-2 text-xs font-medium text-muted">Ваша мрежна адреса</p>
+                    <UInput :model-value="row.studentNetwork || ''" readonly class="w-full" :class="resultFieldClass(compareSubmittedValue(row.studentNetwork, row.correctNetwork, 'ip'))" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="mb-2 text-xs font-medium text-muted">Ваша маска</p>
+                    <UInput :model-value="row.studentMask || ''" readonly class="w-full" :class="resultFieldClass(compareSubmittedValue(row.studentMask, row.correctMask, 'ip'))" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="mb-2 text-xs font-medium text-muted">Ваша емисиона адреса</p>
+                    <UInput :model-value="row.studentBroadcast || ''" readonly class="w-full" :class="resultFieldClass(compareSubmittedValue(row.studentBroadcast, row.correctBroadcast, 'ip'))" />
+                  </td>
+                </tr>
+                <tr class="border-b border-default last:border-0 bg-muted/10">
+                  <td class="px-4 py-3 text-center font-medium text-toned">{{ row.name }}</td>
+                  <td class="px-4 py-3 text-center text-toned">{{ row.hosts }}</td>
+                  <td class="px-4 py-3">
+                    <p class="mb-2 text-xs font-medium text-muted">Тачна мрежна адреса</p>
+                    <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="mb-2 text-xs font-medium text-muted">Тачна маска</p>
+                    <UInput :model-value="row.correctMask || ''" readonly class="w-full field-correct" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <p class="mb-2 text-xs font-medium text-muted">Тачна емисиона адреса</p>
+                    <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>

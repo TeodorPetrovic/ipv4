@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import type { AuthState } from '#shared/types/api'
-
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+const { authState, ensureAuthSession, refreshAuthSession } = useAuthSession()
 const colorMode = useColorMode()
 
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+await ensureAuthSession()
 
 if (!authState.value?.student) {
   await navigateTo('/login')
@@ -21,6 +17,7 @@ const profileItems = computed(() => [[
         method: 'POST',
       })
 
+      await refreshAuthSession()
       await navigateTo('/login')
     },
   },

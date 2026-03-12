@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AuthState } from '#shared/types/api'
 import type { StudentAttemptPayload } from '#shared/types/test-attempt'
 
 definePageMeta({
@@ -9,21 +8,12 @@ definePageMeta({
 const route = useRoute()
 const toast = useToast()
 const attemptId = Number(route.params.attemptId)
-const attemptIdParam = String(route.params.attemptId ?? '')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 const classOptions = ['A', 'B', 'C', 'D', 'E']
 const networkOptions = [{ label: 'Да', value: '1' }, { label: 'Не', value: '0' }]
 
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
-
 if (!Number.isFinite(attemptId)) {
   await navigateTo('/tests')
-}
-
-if (!authState.value?.student) {
-  await navigateTo('/login')
 }
 
 const submitting = ref(false)
@@ -40,7 +30,6 @@ const { data, error } = await useFetch<StudentAttemptPayload>(
   `/api/tests/attempts/${attemptId}`,
   {
     headers: requestHeaders,
-    immediate: Boolean(authState.value?.student),
   },
 )
 
@@ -54,7 +43,7 @@ const {
   deadlineAt: computed(() => data.value?.attempt.deadlineAt ?? null),
   canSubmit: computed(() => Boolean(data.value?.attempt.canSubmit)),
   onExpired: async () => {
-    await submitAnswers(true)
+    await submitAnswers()
   },
 })
 
@@ -66,23 +55,23 @@ async function navigateToResults() {
   resultsRedirectInFlight.value = true
   stopTimer()
 
-  const targetPath = `/results/${attemptIdParam}`
+  await navigateTo(`/results/${attemptId}`, { replace: true })
+}
 
-  if (import.meta.client) {
-    window.location.replace(targetPath)
+async function handleAttemptLoadError(requestError: any) {
+  const statusCode = requestError?.statusCode
+
+  if (statusCode === 401) {
+    await navigateTo('/login', { replace: true })
     return
   }
 
-  await navigateTo(targetPath, { replace: true })
+  if (statusCode === 403) {
+    await navigateToResults()
+  }
 }
 
-if ((error.value as any)?.statusCode === 401) {
-  await navigateTo('/login')
-}
-
-if ((error.value as any)?.statusCode === 403) {
-  await navigateToResults()
-}
+await handleAttemptLoadError(error.value)
 
 const pageError = computed(() => {
   const statusCode = (error.value as any)?.statusCode
@@ -95,16 +84,10 @@ const pageError = computed(() => {
 })
 
 watch(error, (requestError) => {
-  const statusCode = (requestError as any)?.statusCode
-
-  if (statusCode === 403) {
-    void navigateToResults()
-  } else if (statusCode === 401) {
-    void navigateTo('/login')
-  }
+  void handleAttemptLoadError(requestError)
 })
 
-async function submitAnswers(isAutoSubmit = false) {
+async function submitAnswers() {
   if (submitting.value || resultsRedirectInFlight.value) {
     return
   }
@@ -116,17 +99,11 @@ async function submitAnswers(isAutoSubmit = false) {
       method: 'POST',
       body: {
         answers,
-        ...(isAutoSubmit ? { autoSubmit: true } : {}),
       },
     })
 
     await navigateToResults()
   } catch (fetchError: any) {
-    if (isAutoSubmit) {
-      await navigateToResults()
-      return
-    }
-
     toast.add({
       title: 'Грешка при предавању',
       description: fetchError.data?.message || 'Није могуће предати овај покушај.',

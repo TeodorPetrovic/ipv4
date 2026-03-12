@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AuthState, TestResultRow } from '#shared/types/api'
+import type { TestResultRow } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
@@ -9,10 +9,8 @@ definePageMeta({
 const route = useRoute()
 const attemptId = Number(route.params.attemptId)
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')
@@ -65,9 +63,7 @@ async function loadResult() {
   }
 }
 
-if (authState.value?.isAdmin) {
-  await loadResult()
-}
+await loadResult()
 </script>
 
 <template>
@@ -233,4 +229,3 @@ if (authState.value?.isAdmin) {
     </div>
   </div>
 </template>
-

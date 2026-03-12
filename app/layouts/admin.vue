@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import type { AuthState } from '#shared/types/api'
-
 const route = useRoute()
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+const { authState, ensureAuthSession, refreshAuthSession } = useAuthSession()
 const colorMode = useColorMode()
 
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')
@@ -57,6 +53,7 @@ async function logout() {
     method: 'POST',
   })
 
+  await refreshAuthSession()
   await navigateTo('/admin')
 }
 

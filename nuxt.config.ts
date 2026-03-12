@@ -7,5 +7,15 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'bun',
   },
+
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        '@internationalized/date',
+      ]
+    }
+  },
   css: ['~/assets/css/main.css'],
 })

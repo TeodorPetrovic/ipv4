@@ -8,14 +8,13 @@ import {
   compareIps,
   generateRandomCidr,
   generateRandomIp,
-  generateRandomSubnetMask,
   getBroadcastAddress,
   getHostCountFromMask,
   getIpClass,
   getNetworkAddress,
   ipToBinary,
-  sameNetwork,
 } from '../ipv4'
+import { generateLevel6QuestionSeeds } from '../level6-generator'
 import type { StudentSession } from '#server/utils/service/auth'
 import { getScoringSettings } from '#server/utils/service/settings'
 import type { ScoringSettings } from '#server/utils/service/settings'
@@ -319,21 +318,7 @@ function generateLevel5Questions(): QuestionSeed[] {
 }
 
 function generateLevel6Questions(): QuestionSeed[] {
-  return Array.from({ length: 5 }, (_, index) => {
-    const ip1 = generateRandomIp()
-    const ip2 = generateRandomIp()
-    const mask = generateRandomSubnetMask()
-
-    return {
-      section: 'level6',
-      questionOrder: index + 1,
-      promptPrimary: ip1,
-      promptSecondary: ip2,
-      promptTertiary: mask,
-      expectedAnswer1: sameNetwork(ip1, ip2, mask) ? '1' : '0',
-      points: 1,
-    }
-  })
+  return generateLevel6QuestionSeeds(5)
 }
 
 function generateLevel7Questions(): QuestionSeed[] {
@@ -1076,6 +1061,7 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
       id: syncedAttempt.id,
       testId: syncedAttempt.testId,
       title: testRow.title,
+      description: testRow.description,
       status: syncedAttempt.status,
       attemptNumber: syncedAttempt.attemptNumber,
       startedAt: toIsoString(syncedAttempt.startedAt),
@@ -1090,7 +1076,7 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
   }
 }
 
-export async function submitAttemptForStudent(attemptId: number, student: StudentSession, answers: AttemptAnswerPayload, isAutoSubmit = false) {
+export async function submitAttemptForStudent(attemptId: number, student: StudentSession, answers: AttemptAnswerPayload = {}) {
   const attemptRows = await db
     .select()
     .from(testAttempts)
@@ -1106,13 +1092,8 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
     })
   }
 
-  // Do NOT call expireAttemptIfNeeded here — a submission arriving at or just after
-  // the deadline must still be accepted. We only reject if it was already
-  // explicitly expired/submitted before this request.
-  // For auto-submit we also allow status=expired with no submittedAt (server expired it
-  // in the same instant the client countdown reached zero).
   const alreadyDone = attemptRow.submittedAt
-    || (attemptRow.status !== 'in_progress' && !(isAutoSubmit && attemptRow.status === 'expired'))
+    || (attemptRow.status !== 'in_progress' && attemptRow.status !== 'expired')
   if (alreadyDone) {
     throw createError({
       statusCode: 400,

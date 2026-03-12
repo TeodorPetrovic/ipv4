@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { CalendarDate, Time } from '@internationalized/date'
-import type { AuthState } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
@@ -10,10 +9,8 @@ definePageMeta({
 const route = useRoute()
 const testId = Number(route.params.id)
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')
@@ -77,7 +74,6 @@ const { data, error: fetchError } = await useFetch<{
   unlimitedAttempts?: boolean
 }>(`/api/tests/${testId}`, {
   headers: requestHeaders,
-  immediate: Boolean(authState.value?.isAdmin),
 })
 
 watchEffect(() => {

@@ -11,10 +11,8 @@ const form = reactive({
 
 const loading = ref(false)
 const error = ref('')
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const { data: authState } = await useFetch('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')

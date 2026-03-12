@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import type { AdminStudent, AuthState } from '#shared/types/api'
+import type { AdminStudent } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
@@ -11,9 +11,8 @@ const students = ref<AdminStudent[]>([])
 const globalFilter = ref('')
 const pageError = ref('')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')
@@ -30,9 +29,7 @@ async function loadStudents() {
   }
 }
 
-if (authState.value?.isAdmin) {
-  await loadStudents()
-}
+await loadStudents()
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -115,4 +112,3 @@ const columns: TableColumn<AdminStudent>[] = [
     </div>
   </div>
 </template>
-

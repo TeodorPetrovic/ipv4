@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import type { AuthState } from '#shared/types/api'
-
 definePageMeta({
   layout: 'admin',
   title: 'Settings',
 })
 
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')
@@ -72,9 +68,7 @@ async function loadSettings() {
   }
 }
 
-if (authState.value?.isAdmin) {
-  await loadSettings()
-}
+await loadSettings()
 
 async function saveSettings() {
   loading.value = true

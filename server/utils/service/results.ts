@@ -60,44 +60,6 @@ export async function getSubmittedResults() {
   return buildAttemptResults(attemptRows)
 }
 
-export async function getResultsForTest(testId: number) {
-  const testRows = await db
-    .select()
-    .from(tests)
-    .where(eq(tests.id, testId))
-    .limit(1)
-
-  const [testRow] = testRows
-
-  if (!testRow) {
-    throw createError({
-      statusCode: 404,
-      message: 'Test not found',
-    })
-  }
-
-  const attemptRows = await db
-    .select()
-    .from(testAttempts)
-    .where(eq(testAttempts.testId, testId))
-    .orderBy(desc(testAttempts.startedAt), desc(testAttempts.id))
-
-  const studentRows = await db
-    .select()
-    .from(students)
-
-  return {
-    test: {
-      id: testRow.id,
-      title: testRow.title,
-    },
-    results: await buildAttemptResults(attemptRows, {
-      studentRows,
-      testRows,
-    }),
-  }
-}
-
 export async function getResultByAttemptId(attemptId: number) {
   const attemptRows = await db
     .select()

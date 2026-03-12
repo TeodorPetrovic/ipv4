@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import type { AuthState } from '#shared/types/api'
-
 const studentId = ref('')
 const loading = ref(false)
 const error = ref('')
-const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-
-const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
-  headers: requestHeaders,
-})
+const { authState, ensureAuthSession, refreshAuthSession } = useAuthSession()
+await ensureAuthSession()
 
 if (authState.value?.student) {
   await navigateTo('/tests')
@@ -32,6 +27,7 @@ async function login() {
       },
     })
 
+    await refreshAuthSession()
     await navigateTo('/tests')
   } catch (fetchError: any) {
     error.value = fetchError.data?.message || 'Login failed'
