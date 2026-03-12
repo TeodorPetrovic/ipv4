@@ -23,7 +23,13 @@
 .field-correct input,
 .field-correct textarea,
 .field-correct button {
-  background-color: color-mix(in srgb, var(--field-ok) 54%, white) !important;
+  background-color: color-mix(in srgb, var(--field-ok) 15%, white) !important;
+}
+
+.dark .field-correct input,
+.dark .field-correct textarea,
+.dark .field-correct button {
+  background-color: color-mix(in srgb, var(--field-ok) 20%, transparent) !important;
 }
 
 .field-wrong input,
@@ -36,7 +42,13 @@
 .field-wrong input,
 .field-wrong textarea,
 .field-wrong button {
-  background-color: color-mix(in srgb, var(--field-bad) 48%, white) !important;
+  background-color: color-mix(in srgb, var(--field-bad) 12%, white) !important;
+}
+
+.dark .field-wrong input,
+.dark .field-wrong textarea,
+.dark .field-wrong button {
+  background-color: color-mix(in srgb, var(--field-bad) 18%, transparent) !important;
 }
 
 .table-shell thead th {
@@ -51,21 +63,22 @@
 
 :root {
   /* --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif; */
-  --ui-radius: 0.375rem;
+  --ui-radius: 0.25rem;
+  --ui-color-primary-50: oklch(0.936 0.032 17.717);
+  --ui-color-primary-100: oklch(0.885 0.062 18.334);
+  --ui-color-primary-200: oklch(0.808 0.114 19.571);
+  --ui-color-primary-300: oklch(0.704 0.191 22.216);
+  --ui-color-primary-400: oklch(0.637 0.237 25.331);
+  --ui-color-primary-500: oklch(0.577 0.245 27.325);
+  --ui-color-primary-600: oklch(0.505 0.213 27.518);
+  --ui-color-primary-700: oklch(0.444 0.177 26.899);
+  --ui-color-primary-800: oklch(0.396 0.141 25.723);
+  --ui-color-primary-900: oklch(0.258 0.092 26.042);
+  --ui-color-primary-950: oklch(0.258 0.092 26.042);
 }
 
 .dark {
-  --ui-color-primary-50: oklch(0.984 0.014 180.72);
-  --ui-color-primary-100: oklch(0.984 0.014 180.72);
-  --ui-color-primary-200: oklch(0.953 0.051 180.801);
-  --ui-color-primary-300: oklch(0.91 0.096 180.426);
-  --ui-color-primary-400: oklch(0.855 0.138 181.071);
-  --ui-color-primary-500: oklch(0.777 0.152 181.912);
-  --ui-color-primary-600: oklch(0.704 0.14 182.503);
-  --ui-color-primary-700: oklch(0.6 0.118 184.704);
-  --ui-color-primary-800: oklch(0.511 0.096 186.391);
-  --ui-color-primary-900: oklch(0.437 0.078 188.216);
-  --ui-color-primary-950: oklch(0.386 0.063 188.416);
+  --ui-radius: 0.375rem;
   --ui-color-secondary-50: oklch(0.98 0.016 73.684);
   --ui-color-secondary-100: oklch(0.98 0.016 73.684);
   --ui-color-secondary-200: oklch(0.954 0.038 75.164);

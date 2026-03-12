@@ -289,7 +289,7 @@ async function submitAnswers() {
       },
     })
 
-    await navigateTo('/tests')
+    await refresh()
   } catch (fetchError: any) {
     submitError.value = fetchError.data?.message || 'Није могуће предати овај покушај'
   } finally {
@@ -311,7 +311,7 @@ async function submitAnswers() {
 
       <div v-else-if="data" class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside class="lg:sticky lg:top-6 lg:self-start">
-          <UCard>
+          <UCard class="bg-muted">
             <template #header>
               <div>
                 <h2 class="mt-2 text-lg font-semibold text-highlighted">IP конвертор</h2>
@@ -347,7 +347,7 @@ async function submitAnswers() {
                 </div>
               </div>
 
-              <div v-if="data.attempt.canSubmit" class="rounded-xl border border-default bg-elevated/40 px-4 py-3 lg:min-w-56">
+              <div v-if="data.attempt.canSubmit" class="rounded-lg border border-default bg-elevated px-4 py-3 lg:min-w-56">
                 <p class="text font-bold uppercase tracking-wide">Преостало време</p>
                 <ClientOnly>
                   <p class="mt-1 font-mono text-3xl font-bold" :class="remainingTimeColor">{{ remainingTimeLabel }}</p>
@@ -374,15 +374,35 @@ async function submitAnswers() {
             :title="submitError"
           />
 
-          <UAlert
+          <div
             v-if="showSolutions"
-            :color="percentageColor(data.attempt.percentage)"
-            variant="soft"
-            :title="`Резултат: ${data.attempt.percentage}%`"
-            :description="`${data.attempt.score} / ${data.attempt.totalQuestions} тачних поена`"
-          />
+            class="rounded-lg border border-default bg-elevated p-5"
+          >
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-muted">Ваш резултат</p>
+                <p
+                  class="mt-1 text-5xl font-bold"
+                  :class="{
+                    'text-green-600 dark:text-green-400': data.attempt.percentage >= 70,
+                    'text-amber-600 dark:text-amber-400': data.attempt.percentage >= 50 && data.attempt.percentage < 70,
+                    'text-red-600 dark:text-red-400': data.attempt.percentage < 50,
+                  }"
+                >
+                  {{ data.attempt.percentage }}%
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-2xl font-semibold text-highlighted">{{ data.attempt.score }} / {{ data.attempt.totalQuestions }}</p>
+                <p class="text-sm text-muted">тачних поена</p>
+                <p class="mt-2 text-sm font-medium text-toned">
+                  {{ data.attempt.percentage >= 70 ? 'Тест положен' : data.attempt.percentage >= 50 ? 'Делимично тачно' : 'Тест није положен' }}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 1 · Превођење из бинарног у децимални облик</h2>
@@ -390,35 +410,40 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level1"
-                :key="row.id"
-                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_1fr]"
-              >
-                <div>
-                  <p class="text-xs font-medium uppercase text-muted">Бинарни</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.binary }}</p>
-                </div>
-
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase text-muted">Децимални одговор</p>
-                  <UInput
-                    v-model="answers.level1[index]"
-                    class="w-full"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level1[index], row.correctAnswer, 'ip'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
-                    <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Бинарни</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Децимални одговор</th>
+                    <th v-if="showSolutions" class="px-4 py-3 text-left text-xs font-semibold text-muted">Тачан одговор</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level1"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.binary }}</td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level1[index]"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level1[index], row.correctAnswer, 'ip'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 2 · IPv4 класа</h2>
@@ -426,36 +451,41 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level2"
-                :key="row.id"
-                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_220px]"
-              >
-                <div>
-                  <p class="text-xs font-medium uppercase  text-muted">IP адреса</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.ip }}</p>
-                </div>
-
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase text-muted">Класа</p>
-                  <USelect
-                    v-model="answers.level2[index]"
-                    class="w-full"
-                    :items="classOptions"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level2[index], row.correctAnswer, 'text'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
-                    <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">IP адреса</th>
+                    <th class="w-48 px-4 py-3 text-left text-xs font-semibold text-muted">Класа</th>
+                    <th v-if="showSolutions" class="w-40 px-4 py-3 text-left text-xs font-semibold text-muted">Тачан одговор</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level2"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.ip }}</td>
+                    <td class="px-4 py-3">
+                      <USelect
+                        v-model="answers.level2[index]"
+                        class="w-full"
+                        :items="classOptions"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level2[index], row.correctAnswer, 'text'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 3 · Мрежна и емисиона адреса</h2>
@@ -463,49 +493,53 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level3"
-                :key="row.id"
-                class="grid gap-4 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_1fr_1fr]"
-              >
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-muted">Адреса хоста</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.hostIp }}</p>
-                </div>
-
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-muted">Мрежна адреса</p>
-                  <UInput
-                    v-model="answers.level3[index]!.network"
-                    class="w-full"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level3[index]?.network, row.correctNetwork, 'ip'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
-                    <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-muted">Емисиона адреса</p>
-                  <UInput
-                    v-model="answers.level3[index]!.broadcast"
-                    class="w-full"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level3[index]?.broadcast, row.correctBroadcast, 'ip'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
-                    <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Адреса хоста</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Мрежна адреса</th>
+                    <th v-if="showSolutions" class="px-4 py-3 text-left text-xs font-semibold text-muted">Тачна мрежна</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Емисиона адреса</th>
+                    <th v-if="showSolutions" class="px-4 py-3 text-left text-xs font-semibold text-muted">Тачна емисиона</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level3"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.hostIp }}</td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level3[index]!.network"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level3[index]?.network, row.correctNetwork, 'ip'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
+                    </td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level3[index]!.broadcast"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level3[index]?.broadcast, row.correctBroadcast, 'ip'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 4 · Капацитет мреже</h2>
@@ -513,35 +547,40 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level4"
-                :key="row.id"
-                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_240px]"
-              >
-                <div>
-                  <p class="text-xs font-medium uppercase text-muted">Маска подмреже</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.mask }}</p>
-                </div>
-
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase text-muted">Употребљиви хостови</p>
-                  <UInput
-                    v-model="answers.level4[index]"
-                    class="w-full"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level4[index], row.correctAnswer, 'number'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
-                    <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Маска подмреже</th>
+                    <th class="w-56 px-4 py-3 text-left text-xs font-semibold text-muted">Употребљиви хостови</th>
+                    <th v-if="showSolutions" class="w-48 px-4 py-3 text-left text-xs font-semibold text-muted">Тачан одговор</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level4"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.mask }}</td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level4[index]"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level4[index], row.correctAnswer, 'number'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="row.correctAnswer || ''" readonly class="w-full field-correct" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 5 · Адресе рачунара са јавним Интернет адресама</h2>
@@ -549,35 +588,41 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level5"
-                :key="row.id"
-                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_220px]"
-              >
-                <div>
-                  <p class="text-xs font-medium uppercase text-muted">Адреса</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.addressCidr }}</p>
-                </div>
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-muted">Употребљива на Интернету?</p>
-                  <USelect
-                    v-model="answers.level5[index]"
-                    class="w-full"
-                    :items="networkOptions"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level5[index], row.correctAnswer, 'text'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase text-muted">Тачан одговор</p>
-                    <UInput :model-value="yesNoLabel(row.correctAnswer)" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Адреса</th>
+                    <th class="w-52 px-4 py-3 text-left text-xs font-semibold text-muted">Употребљива на Интернету?</th>
+                    <th v-if="showSolutions" class="w-40 px-4 py-3 text-left text-xs font-semibold text-muted">Тачан одговор</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level5"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.addressCidr }}</td>
+                    <td class="px-4 py-3">
+                      <USelect
+                        v-model="answers.level5[index]"
+                        class="w-full"
+                        :items="networkOptions"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level5[index], row.correctAnswer, 'text'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="yesNoLabel(row.correctAnswer)" readonly class="w-full field-correct" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 6 · Локалне и удаљене адресе</h2>
@@ -587,43 +632,45 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level6"
-                :key="row.id"
-                class="grid gap-3 rounded-2xl border border-default bg-elevated/40 p-4 lg:grid-cols-[1fr_1fr_1fr_220px]"
-              >
-                <div>
-                  <p class="text-xs font-medium uppercase  text-muted">Адреса 1</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.ip1 }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-medium uppercase  text-muted">Адреса 2</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.ip2 }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-medium uppercase  text-muted">Маска подмреже</p>
-                  <p class="mt-2 font-mono text-sm text-toned">{{ row.mask }}</p>
-                </div>
-                <div class="space-y-2">
-                  <p class="text-xs font-medium uppercase  text-muted">Иста мрежа?</p>
-                  <USelect
-                    v-model="answers.level6[index]"
-                    class="w-full"
-                    :items="networkOptions"
-                    :disabled="!data.attempt.canSubmit"
-                    :class="fieldClass(compareValue(answers.level6[index], row.correctAnswer, 'text'))"
-                  />
-                  <div v-if="showSolutions" class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
-                    <UInput :model-value="yesNoLabel(row.correctAnswer)" readonly class="w-full field-correct" />
-                  </div>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Адреса 1</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Адреса 2</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Маска подмреже</th>
+                    <th class="w-44 px-4 py-3 text-left text-xs font-semibold text-muted">Иста мрежа?</th>
+                    <th v-if="showSolutions" class="w-40 px-4 py-3 text-left text-xs font-semibold text-muted">Тачан одговор</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level6"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.ip1 }}</td>
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.ip2 }}</td>
+                    <td class="px-4 py-3 font-mono text-toned">{{ row.mask }}</td>
+                    <td class="px-4 py-3">
+                      <USelect
+                        v-model="answers.level6[index]"
+                        class="w-full"
+                        :items="networkOptions"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level6[index], row.correctAnswer, 'text'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
+                      <UInput :model-value="yesNoLabel(row.correctAnswer)" readonly class="w-full field-correct" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
-          <UCard>
+          <UCard :ui="{ body: 'p-0 sm:p-0' }">
             <template #header>
               <div>
                 <h2 class="text-lg font-semibold text-highlighted">Ниво 7 · Пројекат подмрежавања</h2>
@@ -633,63 +680,66 @@ async function submitAnswers() {
               </div>
             </template>
 
-            <div class="space-y-4">
-              <div
-                v-for="(row, index) in data.sections.level7.subnets"
-                :key="row.id"
-                class="space-y-4 rounded-2xl border border-default bg-elevated/40 p-4"
-              >
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p class="text-xs font-medium uppercase  text-muted">{{ row.name }}</p>
-                    <p class="mt-1 text-sm text-toned">{{ row.hosts }} хостова потребно</p>
-                  </div>
-                </div>
-
-                <div class="grid gap-4 lg:grid-cols-3">
-                  <div class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-muted">Мрежна адреса</p>
-                    <UInput
-                      v-model="answers.level7[index]!.network"
-                      class="w-full"
-                      :disabled="!data.attempt.canSubmit"
-                      :class="fieldClass(compareValue(answers.level7[index]?.network, row.correctNetwork, 'ip'))"
-                    />
-                    <div v-if="showSolutions" class="space-y-2">
-                      <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="border-b border-default bg-muted/30">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Подмрежа</th>
+                    <th class="w-24 px-4 py-3 text-left text-xs font-semibold text-muted">Хостова</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Мрежна адреса</th>
+                    <th v-if="showSolutions" class="px-4 py-3 text-left text-xs font-semibold text-muted">Тачна мрежна</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Маска подмреже</th>
+                    <th v-if="showSolutions" class="px-4 py-3 text-left text-xs font-semibold text-muted">Тачна маска</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-muted">Емисиона адреса</th>
+                    <th v-if="showSolutions" class="px-4 py-3 text-left text-xs font-semibold text-muted">Тачна емисиона</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, index) in data.sections.level7.subnets"
+                    :key="row.id"
+                    class="border-b border-default last:border-0"
+                  >
+                    <td class="px-4 py-3">
+                      <p class="font-medium text-toned">{{ row.name }}</p>
+                    </td>
+                    <td class="px-4 py-3 text-toned">{{ row.hosts }}</td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level7[index]!.network"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level7[index]?.network, row.correctNetwork, 'ip'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
                       <UInput :model-value="row.correctNetwork || ''" readonly class="w-full field-correct" />
-                    </div>
-                  </div>
-
-                  <div class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-muted">Маска подмреже</p>
-                    <UInput
-                      v-model="answers.level7[index]!.mask"
-                      class="w-full"
-                      :disabled="!data.attempt.canSubmit"
-                      :class="fieldClass(compareValue(answers.level7[index]?.mask, row.correctMask, 'ip'))"
-                    />
-                    <div v-if="showSolutions" class="space-y-2">
-                      <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
+                    </td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level7[index]!.mask"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level7[index]?.mask, row.correctMask, 'ip'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
                       <UInput :model-value="row.correctMask || ''" readonly class="w-full field-correct" />
-                    </div>
-                  </div>
-
-                  <div class="space-y-2">
-                    <p class="text-xs font-medium uppercase  text-muted">Емисиона адреса</p>
-                    <UInput
-                      v-model="answers.level7[index]!.broadcast"
-                      class="w-full"
-                      :disabled="!data.attempt.canSubmit"
-                      :class="fieldClass(compareValue(answers.level7[index]?.broadcast, row.correctBroadcast, 'ip'))"
-                    />
-                    <div v-if="showSolutions" class="space-y-2">
-                      <p class="text-xs font-medium uppercase  text-muted">Тачан одговор</p>
+                    </td>
+                    <td class="px-4 py-3">
+                      <UInput
+                        v-model="answers.level7[index]!.broadcast"
+                        class="w-full"
+                        :disabled="!data.attempt.canSubmit"
+                        :class="fieldClass(compareValue(answers.level7[index]?.broadcast, row.correctBroadcast, 'ip'))"
+                      />
+                    </td>
+                    <td v-if="showSolutions" class="px-4 py-3">
                       <UInput :model-value="row.correctBroadcast || ''" readonly class="w-full field-correct" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </UCard>
 
