@@ -1,6 +1,6 @@
 import { withSafeApi } from '#server/utils/safe-api'
 import { requireStudentSession } from '#server/utils/service/auth'
-import { submitAttemptForStudent } from '#server/utils/service/tests'
+import { getAttemptResultsForStudent } from '#server/utils/service/tests'
 
 export default withSafeApi(async (event) => {
   const attemptId = Number(getRouterParam(event, 'attemptId'))
@@ -13,7 +13,5 @@ export default withSafeApi(async (event) => {
   }
 
   const session = requireStudentSession(event)
-  const body = await readBody<{ answers?: Record<string, unknown>; autoSubmit?: boolean }>(event)
-
-  return submitAttemptForStudent(attemptId, session, body.answers as any, Boolean(body.autoSubmit))
+  return getAttemptResultsForStudent(attemptId, session)
 })

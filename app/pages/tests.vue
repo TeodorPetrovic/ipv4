@@ -150,7 +150,6 @@ async function openTest(test: StudentTest) {
         <template #action-cell="{ row }">
           <div class="flex w-full justify-end">
             <UButton
-              size="xs"
               color="neutral"
               variant="outline"
               :loading="loadingActionId === row.original.id"

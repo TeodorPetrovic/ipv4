@@ -964,6 +964,61 @@ export async function startTestForStudent(testId: number, student: StudentSessio
   }
 }
 
+export async function getAttemptResultsForStudent(attemptId: number, student: StudentSession) {
+  const attemptRows = await db
+    .select()
+    .from(testAttempts)
+    .where(and(eq(testAttempts.id, attemptId), eq(testAttempts.studentId, student.studentDbId)))
+    .limit(1)
+
+  const [attemptRow] = attemptRows
+
+  if (!attemptRow) {
+    throw createError({ statusCode: 404, message: 'Attempt not found' })
+  }
+
+  const syncedAttempt = await expireAttemptIfNeeded(attemptRow as AttemptRow)
+
+  if (syncedAttempt.status !== 'submitted' && syncedAttempt.status !== 'expired') {
+    throw createError({ statusCode: 403, message: 'Results are not available yet' })
+  }
+
+  const testRows = await db.select().from(tests).where(eq(tests.id, syncedAttempt.testId)).limit(1)
+  const [testRow] = testRows
+
+  if (!testRow) {
+    throw createError({ statusCode: 404, message: 'Test not found' })
+  }
+
+  const testMeta = getTestMeta(testRow)
+
+  const questionRows = await db
+    .select()
+    .from(attemptQuestions)
+    .where(eq(attemptQuestions.attemptId, attemptId))
+    .orderBy(attemptQuestions.section, attemptQuestions.questionOrder)
+
+  const score = syncedAttempt.score ?? 0
+  const totalQuestions = syncedAttempt.totalQuestions ?? testMeta.testPoints
+
+  return {
+    attempt: {
+      id: syncedAttempt.id,
+      testId: syncedAttempt.testId,
+      title: testRow.title,
+      description: testRow.description,
+      status: syncedAttempt.status,
+      attemptNumber: syncedAttempt.attemptNumber,
+      startedAt: toIsoString(syncedAttempt.startedAt),
+      submittedAt: toIsoString(syncedAttempt.submittedAt),
+      score,
+      totalQuestions,
+      percentage: totalQuestions ? Math.round((score / totalQuestions) * 100) : 0,
+    },
+    sections: buildSections(questionRows, true),
+  }
+}
+
 export async function getAttemptForStudent(attemptId: number, student: StudentSession) {
   const attemptRows = await db
     .select()
@@ -1035,7 +1090,7 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
   }
 }
 
-export async function submitAttemptForStudent(attemptId: number, student: StudentSession, answers: AttemptAnswerPayload) {
+export async function submitAttemptForStudent(attemptId: number, student: StudentSession, answers: AttemptAnswerPayload, isAutoSubmit = false) {
   const attemptRows = await db
     .select()
     .from(testAttempts)
@@ -1051,9 +1106,14 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
     })
   }
 
-  const syncedAttempt = await expireAttemptIfNeeded(attemptRow as AttemptRow)
-
-  if (syncedAttempt.status !== 'in_progress' || syncedAttempt.submittedAt) {
+  // Do NOT call expireAttemptIfNeeded here — a submission arriving at or just after
+  // the deadline must still be accepted. We only reject if it was already
+  // explicitly expired/submitted before this request.
+  // For auto-submit we also allow status=expired with no submittedAt (server expired it
+  // in the same instant the client countdown reached zero).
+  const alreadyDone = attemptRow.submittedAt
+    || (attemptRow.status !== 'in_progress' && !(isAutoSubmit && attemptRow.status === 'expired'))
+  if (alreadyDone) {
     throw createError({
       statusCode: 400,
       message: 'This attempt can no longer be submitted',
@@ -1063,7 +1123,7 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
   const testRows = await db
     .select()
     .from(tests)
-    .where(eq(tests.id, syncedAttempt.testId))
+    .where(eq(tests.id, attemptRow.testId))
     .limit(1)
 
   const [testRow] = testRows
