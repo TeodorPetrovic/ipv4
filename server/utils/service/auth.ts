@@ -1,9 +1,10 @@
 import { desc, eq } from 'drizzle-orm'
+import { compare, hash } from 'bcryptjs'
 import type { H3Event } from 'h3'
 import { createError } from 'h3'
 
-import { db } from '../../database'
-import { appSettings, students } from '../../database/schema'
+import { db } from '#server/database'
+import { admins, students } from '#server/database/schema'
 
 const STUDENT_COOKIE = 'student_session'
 const ADMIN_COOKIE = 'admin_session'
@@ -15,6 +16,11 @@ export interface StudentSession {
   name: string
 }
 
+interface AuthState {
+  student: StudentSession | null
+  isAdmin: boolean
+}
+
 function getFallbackStudentName(studentId: string) {
   return `Student ${studentId}`
 }
@@ -23,11 +29,15 @@ function shouldUseSecureCookies(event: H3Event) {
   const forwardedProto = event.node.req.headers['x-forwarded-proto']
 
   if (typeof forwardedProto === 'string') {
-    return forwardedProto.split(',')[0].trim() === 'https'
+    const protocol = forwardedProto.split(',')[0]
+    return protocol?.trim() === 'https'
   }
 
   if (Array.isArray(forwardedProto)) {
-    return forwardedProto.some(value => value.split(',')[0].trim() === 'https')
+    return forwardedProto.some((value) => {
+      const protocol = value.split(',')[0]
+      return protocol?.trim() === 'https'
+    })
   }
 
   const host = event.node.req.headers.host || ''
@@ -73,11 +83,13 @@ export async function loginStudent(studentId: string) {
     .orderBy(desc(students.id))
     .limit(1)
 
-  if (existingRows.length > 0) {
+  const [existingStudent] = existingRows
+
+  if (existingStudent) {
     return {
-      id: existingRows[0].id,
-      studentId: existingRows[0].studentId,
-      name: existingRows[0].name,
+      id: existingStudent.id,
+      studentId: existingStudent.studentId,
+      name: existingStudent.name,
     }
   }
 
@@ -91,10 +103,63 @@ export async function loginStudent(studentId: string) {
     })
     .$returningId()
 
+  if (!inserted) {
+    throw createError({
+      statusCode: 500,
+      message: 'Unable to create student session',
+    })
+  }
+
   return {
     id: inserted.id,
     studentId: normalizedStudentId,
     name,
+  }
+}
+
+async function ensureDefaultAdmin() {
+  const defaultEmail = (process.env.ADMIN_EMAIL || 'tpetrovic@singimail.rs').trim().toLowerCase()
+  const defaultPassword = process.env.ADMIN_PASSWORD || '123'
+
+  const existingRows = await db
+    .select({
+      id: admins.id,
+      email: admins.email,
+      passwordHash: admins.passwordHash,
+    })
+    .from(admins)
+    .where(eq(admins.email, defaultEmail))
+    .orderBy(desc(admins.id))
+    .limit(1)
+
+  const [existingAdmin] = existingRows
+  if (existingAdmin) {
+    return existingAdmin
+  }
+
+  const now = new Date()
+  const passwordHash = await hash(defaultPassword, 10)
+  const [inserted] = await db
+    .insert(admins)
+    .values({
+      email: defaultEmail,
+      passwordHash,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .$returningId()
+
+  if (!inserted) {
+    throw createError({
+      statusCode: 500,
+      message: 'Unable to initialize admin account',
+    })
+  }
+
+  return {
+    id: inserted.id,
+    email: defaultEmail,
+    passwordHash,
   }
 }
 
@@ -146,17 +211,19 @@ export async function verifyAdminCredentials(email: string, password: string) {
 
   const rows = await db
     .select({
-      adminEmail: appSettings.adminEmail,
-      adminPassword: appSettings.adminPassword,
+      id: admins.id,
+      email: admins.email,
+      passwordHash: admins.passwordHash,
     })
-    .from(appSettings)
-    .where(eq(appSettings.id, 1))
+    .from(admins)
+    .where(eq(admins.email, normalizedEmail))
+    .orderBy(desc(admins.id))
     .limit(1)
 
-  const adminEmail = rows[0]?.adminEmail?.trim().toLowerCase() ?? 'tpetrovic@singimail.rs'
-  const adminPassword = rows[0]?.adminPassword ?? '123'
+  const adminRow = rows[0] ?? await ensureDefaultAdmin()
+  const passwordsMatch = await compare(normalizedPassword, adminRow.passwordHash)
 
-  if (normalizedEmail !== adminEmail || normalizedPassword !== adminPassword) {
+  if (!passwordsMatch) {
     throw createError({
       statusCode: 403,
       message: 'Invalid admin credentials',
@@ -183,7 +250,7 @@ export function requireAdminSession(event: H3Event) {
   }
 }
 
-export function getAuthState(event: H3Event) {
+export function getAuthState(event: H3Event): AuthState {
   return {
     student: getStudentSession(event),
     isAdmin: getCookie(event, ADMIN_COOKIE) === '1',

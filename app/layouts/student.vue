@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { AuthState } from '#shared/types/api'
+
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
@@ -10,15 +12,6 @@ if (!authState.value?.student) {
 }
 
 const profileItems = computed(() => [[
-  {
-    label: authState.value?.student?.name || 'Student',
-    type: 'label' as const,
-  },
-  {
-    label: authState.value?.student?.studentId || '',
-    type: 'label' as const,
-  },
-], [
   {
     label: 'Logout',
     icon: 'i-lucide-log-out',
@@ -39,20 +32,13 @@ const profileItems = computed(() => [[
       <UContainer class="flex h-16 items-center justify-between gap-4">
         <p class="text-lg font-semibold">IP Singidunum</p>
 
-        <div class="ml-auto flex items-center gap-3">
-          <div class="hidden items-center gap-3 rounded-full border border-default px-3 py-1.5 sm:flex">
-            <UIcon name="i-lucide-user-round" class="size-4 text-muted" />
-            <div class="text-right">
-              <p class="text-sm font-medium">{{ authState?.student?.name }}</p>
-              <p class="text-xs text-muted">{{ authState?.student?.studentId }}</p>
-            </div>
-          </div>
-
+        <div class="ml-auto">
           <UDropdownMenu :items="profileItems">
             <UButton
               color="neutral"
-              variant="ghost"
-              icon="i-lucide-circle-user-round"
+              variant="outline"
+              icon="i-lucide-user-round"
+              :label="authState?.student?.name || 'Student'"
               aria-label="Profile"
             />
           </UDropdownMenu>

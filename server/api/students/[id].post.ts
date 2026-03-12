@@ -1,7 +1,8 @@
-import { requireAdminSession } from '../../utils/service/auth'
-import { updateStudent } from '../../utils/service/students'
+import { withSafeApi } from '#server/utils/safe-api'
+import { requireAdminSession } from '#server/utils/service/auth'
+import { updateStudent } from '#server/utils/service/students'
 
-export default defineEventHandler(async (event) => {
+export default withSafeApi(async (event) => {
   requireAdminSession(event)
 
   const studentIdParam = Number(getRouterParam(event, 'id'))

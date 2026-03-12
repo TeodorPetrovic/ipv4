@@ -1,7 +1,8 @@
-import { requireStudentSession } from '../../../../utils/service/auth'
-import { submitAttemptForStudent } from '../../../../utils/service/tests'
+import { withSafeApi } from '#server/utils/safe-api'
+import { requireStudentSession } from '#server/utils/service/auth'
+import { submitAttemptForStudent } from '#server/utils/service/tests'
 
-export default defineEventHandler(async (event) => {
+export default withSafeApi(async (event) => {
   const attemptId = Number(getRouterParam(event, 'attemptId'))
 
   if (!Number.isFinite(attemptId)) {

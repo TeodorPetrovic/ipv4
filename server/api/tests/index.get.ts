@@ -1,7 +1,8 @@
-import { getStudentSession, requireAdminSession, requireStudentSession } from '../../utils/service/auth'
-import { listTestsForAdmin, listTestsForStudent } from '../../utils/service/tests'
+import { withSafeApi } from '#server/utils/safe-api'
+import { getStudentSession, requireAdminSession, requireStudentSession } from '#server/utils/service/auth'
+import { listTestsForAdmin, listTestsForStudent } from '#server/utils/service/tests'
 
-export default defineEventHandler(async (event) => {
+export default withSafeApi(async (event) => {
   const query = getQuery(event)
 
   if (query.mode === 'admin') {

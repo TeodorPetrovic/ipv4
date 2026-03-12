@@ -1,30 +1,19 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { AuthState, StudentTest } from '#shared/types/api'
 
 definePageMeta({
   layout: 'student',
 })
 
-type StudentTest = {
-  id: number
-  title: string
-  description: string | null
-  maxAttempts: number
-  attemptsUsed: number
-  attemptsRemaining: number
-  status: string
-  activeAttemptId: number | null
-  latestScore: number | null
-  latestTotalQuestions: number | null
-}
-
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 const loadingActionId = ref<number | null>(null)
 const loadingPage = ref(false)
 const pageError = ref('')
+const globalFilter = ref('')
 const tests = ref<StudentTest[]>([])
 
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
@@ -51,40 +40,14 @@ if (authState.value?.student) {
   await loadTests()
 }
 
-function statusLabel(status: string) {
-  if (status === 'available') return 'Available'
-  if (status === 'in_progress') return 'In progress'
-  if (status === 'upcoming') return 'Upcoming'
-  if (status === 'closed') return 'Closed'
-  if (status === 'attempts_exhausted') return 'No attempts left'
-  return 'Invalid'
-}
-
-function statusColor(status: string) {
-  if (status === 'available') return 'success'
-  if (status === 'in_progress') return 'primary'
-  if (status === 'upcoming') return 'warning'
-  if (status === 'closed') return 'neutral'
-  if (status === 'attempts_exhausted') return 'error'
-  return 'error'
-}
-
-function actionLabel(test: StudentTest) {
-  return test.status === 'in_progress' ? 'Continue' : 'Start'
+function actionLabel(_test: StudentTest) {
+  return 'Start'
 }
 
 const columns: TableColumn<StudentTest>[] = [
   {
     accessorKey: 'title',
     header: 'Test',
-  },
-  {
-    id: 'attempts',
-    header: 'Attempts',
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
   },
   {
     id: 'action',
@@ -118,15 +81,19 @@ async function openTest(test: StudentTest) {
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <h1 class="text-xl font-semibold">Tests</h1>
-        <p class="text-sm text-muted">Start a test or continue an unfinished attempt.</p>
-      </div>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <UInput
+        v-model="globalFilter"
+        placeholder="Search tests"
+        icon="i-lucide-search"
+        class="w-full sm:max-w-xs"
+      />
 
-      <UButton color="neutral" variant="outline" :loading="loadingPage" @click="loadTests">
-        Refresh
-      </UButton>
+      <div class="flex flex-wrap gap-2">
+        <UButton color="neutral" variant="outline" :loading="loadingPage" icon="i-lucide-refresh-ccw" @click="loadTests">
+          Refresh
+        </UButton>
+      </div>
     </div>
 
     <UAlert
@@ -136,45 +103,33 @@ async function openTest(test: StudentTest) {
       :title="pageError"
     />
 
-    <UTable
-      :data="tests"
-      :columns="columns"
-      :loading="loadingPage || loadingActionId !== null"
-      sticky="header"
-      empty="No tests available."
-    >
-      <template #title-cell="{ row }">
-        <div>
-          <p class="font-medium">{{ row.original.title }}</p>
-          <p class="text-sm text-muted">{{ row.original.description || 'IPv4 generated question set' }}</p>
-        </div>
-      </template>
+    <div class="table-shell overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+      <UTable
+        v-model:global-filter="globalFilter"
+        :data="tests"
+        :columns="columns"
+        :loading="loadingPage || loadingActionId !== null"
+        sticky="header"
+        empty="No tests available."
+      >
+        <template #title-cell="{ row }">
+          <div>
+            <p class="font-medium">{{ row.original.title }}</p>
+          </div>
+        </template>
 
-      <template #attempts-cell="{ row }">
-        <div class="space-y-1 text-sm">
-          <p>{{ row.original.attemptsUsed }} / {{ row.original.maxAttempts }} used</p>
-          <p>Remaining: {{ row.original.attemptsRemaining }}</p>
-          <p v-if="row.original.latestScore !== null && row.original.latestTotalQuestions !== null">
-            Last: {{ row.original.latestScore }} / {{ row.original.latestTotalQuestions }}
-          </p>
-        </div>
-      </template>
-
-      <template #status-cell="{ row }">
-        <UBadge :color="statusColor(row.original.status)" variant="subtle">
-          {{ statusLabel(row.original.status) }}
-        </UBadge>
-      </template>
-
-      <template #action-cell="{ row }">
-        <UButton
-          :loading="loadingActionId === row.original.id"
-          :disabled="!['available', 'in_progress'].includes(row.original.status)"
-          @click="openTest(row.original)"
-        >
-          {{ actionLabel(row.original) }}
-        </UButton>
-      </template>
-    </UTable>
+        <template #action-cell="{ row }">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="outline"
+            :loading="loadingActionId === row.original.id"
+            @click="openTest(row.original)"
+          >
+            {{ actionLabel(row.original) }}
+          </UButton>
+        </template>
+      </UTable>
+    </div>
   </div>
 </template>

@@ -1,24 +1,17 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { AdminStudent, AuthState } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
   title: 'Students',
 })
 
-type AdminStudent = {
-  id: number
-  studentId: string
-  name: string
-  createdAt: string | null
-  attemptsCount: number
-}
-
 const students = ref<AdminStudent[]>([])
 const globalFilter = ref('')
 const pageError = ref('')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
@@ -75,19 +68,20 @@ const columns: TableColumn<AdminStudent>[] = [
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <UInput
         v-model="globalFilter"
         placeholder="Search students"
         icon="i-lucide-search"
+        class="w-full sm:max-w-xs"
       />
 
       <div class="flex gap-2">
         <UButton color="neutral" variant="outline" @click="loadStudents">
           Refresh
         </UButton>
-        <UButton to="/admin/students/new">
-          New Student
+        <UButton icon="i-lucide-plus" to="/admin/students/new">
+          Create Student
         </UButton>
       </div>
     </div>
@@ -99,22 +93,29 @@ const columns: TableColumn<AdminStudent>[] = [
       :title="pageError"
     />
 
-    <UTable
-      v-model:global-filter="globalFilter"
-      :data="students"
-      :columns="columns"
-      sticky="header"
-      empty="No students found."
-    >
-      <template #createdAt-cell="{ row }">
-        {{ formatDate(row.original.createdAt) }}
-      </template>
+    <div class="table-shell overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+      <UTable
+        v-model:global-filter="globalFilter"
+        :data="students"
+        :columns="columns"
+        sticky="header"
+        empty="No students found."
+      >
+        <template #createdAt-cell="{ row }">
+          {{ formatDate(row.original.createdAt) }}
+        </template>
 
-      <template #action-cell="{ row }">
-        <UButton color="neutral" variant="outline" :to="`/admin/students/${row.original.id}`">
-          Edit
-        </UButton>
-      </template>
-    </UTable>
+        <template #action-cell="{ row }">
+          <div class="flex justify-end gap-2">
+            <UButton size="xs" color="neutral" variant="outline" :to="`/admin/students/${row.original.id}`">
+              Open
+            </UButton>
+            <UButton size="xs" color="neutral" variant="outline" icon="i-lucide-pencil" :to="`/admin/students/${row.original.id}`">
+              Edit
+            </UButton>
+          </div>
+        </template>
+      </UTable>
+    </div>
   </div>
 </template>

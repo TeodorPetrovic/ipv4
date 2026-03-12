@@ -1,30 +1,17 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { AdminTest, AuthState } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
   title: 'Tests',
 })
 
-type AdminTest = {
-  id: number
-  title: string
-  description: string | null
-  startAt: string | null
-  endAt: string | null
-  durationMinutes: number
-  maxAttempts: number
-  isPublished: boolean
-  attemptsCount: number
-  submissionsCount: number
-  isInvalid: boolean
-}
-
 const tests = ref<AdminTest[]>([])
 const globalFilter = ref('')
 const pageError = ref('')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
@@ -61,15 +48,15 @@ function formatDate(value: string | null) {
 const columns: TableColumn<AdminTest>[] = [
   {
     accessorKey: 'title',
-    header: 'Test',
+    header: 'Name',
   },
   {
-    id: 'schedule',
-    header: 'Schedule',
+    id: 'startDate',
+    header: 'Start date',
   },
   {
-    id: 'attempts',
-    header: 'Attempts',
+    id: 'endDate',
+    header: 'End date',
   },
   {
     accessorKey: 'isPublished',
@@ -84,19 +71,20 @@ const columns: TableColumn<AdminTest>[] = [
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <UInput
         v-model="globalFilter"
         placeholder="Search tests"
         icon="i-lucide-search"
+        class="w-full sm:max-w-xs"
       />
 
       <div class="flex gap-2">
         <UButton color="neutral" variant="outline" @click="loadTests">
           Refresh
         </UButton>
-        <UButton to="/admin/tests/new">
-          New Test
+        <UButton icon="i-lucide-plus" to="/admin/tests/new">
+          Create Test
         </UButton>
       </div>
     </div>
@@ -108,49 +96,54 @@ const columns: TableColumn<AdminTest>[] = [
       :title="pageError"
     />
 
-    <UTable
-      v-model:global-filter="globalFilter"
-      :data="tests"
-      :columns="columns"
-      sticky="header"
-      empty="No tests found."
-    >
-      <template #title-cell="{ row }">
-        <div>
-          <p class="font-medium">{{ row.original.title }}</p>
-          <p class="text-sm text-muted">
-            {{ row.original.description || 'No description' }}
-          </p>
-        </div>
-      </template>
+    <div class="table-shell overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+      <UTable
+        v-model:global-filter="globalFilter"
+        :data="tests"
+        :columns="columns"
+        sticky="header"
+        empty="No tests found."
+      >
+        <template #title-cell="{ row }">
+          <div class="flex flex-wrap items-center gap-2">
+            <p class="font-medium">{{ row.original.title }}</p>
+            <UBadge color="neutral" variant="soft">
+              {{ row.original.durationMinutes }} min
+            </UBadge>
+            <UBadge color="neutral" variant="soft">
+              Attempts {{ row.original.maxAttempts }}
+            </UBadge>
+          </div>
+        </template>
 
-      <template #schedule-cell="{ row }">
-        <div class="space-y-1 text-sm">
-          <p>Start: {{ formatDate(row.original.startAt) }}</p>
-          <p>End: {{ formatDate(row.original.endAt) }}</p>
-          <p>Duration: {{ row.original.durationMinutes }} min</p>
-        </div>
-      </template>
+        <template #startDate-cell="{ row }">
+          <span class="text-sm">{{ formatDate(row.original.startAt) }}</span>
+        </template>
 
-      <template #attempts-cell="{ row }">
-        <div class="space-y-1 text-sm">
-          <p>Max: {{ row.original.maxAttempts }}</p>
-          <p>Started: {{ row.original.attemptsCount }}</p>
-          <p>Submitted: {{ row.original.submissionsCount }}</p>
-        </div>
-      </template>
+        <template #endDate-cell="{ row }">
+          <span class="text-sm">{{ formatDate(row.original.endAt) }}</span>
+        </template>
 
-      <template #isPublished-cell="{ row }">
-        <UBadge :color="row.original.isInvalid ? 'error' : row.original.isPublished ? 'success' : 'neutral'" variant="subtle">
-          {{ row.original.isInvalid ? 'Invalid' : row.original.isPublished ? 'Published' : 'Draft' }}
-        </UBadge>
-      </template>
+        <template #isPublished-cell="{ row }">
+          <div class="flex items-center">
+            <span
+              class="inline-block size-3 rounded-full"
+              :class="row.original.isInvalid ? 'bg-red-500' : 'bg-emerald-500'"
+            />
+          </div>
+        </template>
 
-      <template #action-cell="{ row }">
-        <UButton color="neutral" variant="outline" :to="`/admin/tests/${row.original.id}`">
-          Edit
-        </UButton>
-      </template>
-    </UTable>
+        <template #action-cell="{ row }">
+          <div class="flex justify-end gap-2">
+            <UButton color="neutral" variant="outline" :to="`/admin/tests/${row.original.id}`">
+              Open
+            </UButton>
+            <UButton color="neutral" variant="outline" icon="i-lucide-pencil" :to="`/admin/tests/${row.original.id}/edit`">
+              Edit
+            </UButton>
+          </div>
+        </template>
+      </UTable>
+    </div>
   </div>
 </template>

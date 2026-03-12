@@ -1,6 +1,7 @@
-import { clearAdminSession, clearStudentSession } from '../../utils/service/auth'
+import { withSafeApi } from '#server/utils/safe-api'
+import { clearAdminSession, clearStudentSession } from '#server/utils/service/auth'
 
-export default defineEventHandler((event) => {
+export default withSafeApi((event) => {
   clearStudentSession(event)
   clearAdminSession(event)
 

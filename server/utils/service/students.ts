@@ -1,8 +1,8 @@
 import { desc, eq } from 'drizzle-orm'
 import { createError } from 'h3'
 
-import { db } from '../../database'
-import { students, testAttempts } from '../../database/schema'
+import { db } from '#server/database'
+import { students, testAttempts } from '#server/database/schema'
 
 interface SaveStudentInput {
   studentId: string
@@ -60,7 +60,9 @@ export async function getStudent(studentDbId: number) {
     .where(eq(students.id, studentDbId))
     .limit(1)
 
-  if (rows.length === 0) {
+  const [studentRow] = rows
+
+  if (!studentRow) {
     throw createError({
       statusCode: 404,
       message: 'Student not found',
@@ -68,10 +70,10 @@ export async function getStudent(studentDbId: number) {
   }
 
   return {
-    id: rows[0].id,
-    studentId: rows[0].studentId,
-    name: rows[0].name,
-    createdAt: rows[0].createdAt,
+    id: studentRow.id,
+    studentId: studentRow.studentId,
+    name: studentRow.name,
+    createdAt: studentRow.createdAt,
   }
 }
 
@@ -96,6 +98,13 @@ export async function createStudent(input: SaveStudentInput) {
       createdAt: new Date(),
     })
     .$returningId()
+
+  if (!inserted) {
+    throw createError({
+      statusCode: 500,
+      message: 'Unable to create student',
+    })
+  }
 
   return {
     id: inserted.id,
@@ -122,7 +131,9 @@ export async function updateStudent(studentDbId: number, input: SaveStudentInput
     .where(eq(students.id, studentDbId))
     .limit(1)
 
-  if (existingRows.length === 0) {
+  const [existingStudent] = existingRows
+
+  if (!existingStudent) {
     throw createError({
       statusCode: 404,
       message: 'Student not found',

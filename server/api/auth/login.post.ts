@@ -1,6 +1,7 @@
-import { loginStudent, setStudentSession } from '../../utils/service/auth'
+import { withSafeApi } from '#server/utils/safe-api'
+import { loginStudent, setStudentSession } from '#server/utils/service/auth'
 
-export default defineEventHandler(async (event) => {
+export default withSafeApi(async (event) => {
   const body = await readBody<{ studentId?: string }>(event)
   const student = await loginStudent(body.studentId || '')
 

@@ -1,8 +1,8 @@
 import { desc, eq, isNotNull } from 'drizzle-orm'
 import { createError } from 'h3'
 
-import { db } from '../../database'
-import { attemptQuestions, students, testAttempts, tests } from '../../database/schema'
+import { db } from '#server/database'
+import { attemptQuestions, students, testAttempts, tests } from '#server/database/schema'
 import { buildSections, toIsoString } from './tests'
 
 async function buildAttemptResults(
@@ -31,6 +31,7 @@ async function buildAttemptResults(
 
     results.push({
       id: attemptRow.id,
+      testId: attemptRow.testId,
       studentName: studentRow?.name || `Student ${studentRow?.studentId || ''}`.trim(),
       studentId: studentRow?.studentId || '',
       testTitle: testRow?.title || 'Untitled test',
@@ -66,7 +67,9 @@ export async function getResultsForTest(testId: number) {
     .where(eq(tests.id, testId))
     .limit(1)
 
-  if (testRows.length === 0) {
+  const [testRow] = testRows
+
+  if (!testRow) {
     throw createError({
       statusCode: 404,
       message: 'Test not found',
@@ -85,12 +88,41 @@ export async function getResultsForTest(testId: number) {
 
   return {
     test: {
-      id: testRows[0].id,
-      title: testRows[0].title,
+      id: testRow.id,
+      title: testRow.title,
     },
     results: await buildAttemptResults(attemptRows, {
       studentRows,
       testRows,
     }),
   }
+}
+
+export async function getResultByAttemptId(attemptId: number) {
+  const attemptRows = await db
+    .select()
+    .from(testAttempts)
+    .where(eq(testAttempts.id, attemptId))
+    .limit(1)
+
+  const [attemptRow] = attemptRows
+
+  if (!attemptRow) {
+    throw createError({
+      statusCode: 404,
+      message: 'Attempt not found',
+    })
+  }
+
+  const results = await buildAttemptResults([attemptRow])
+  const [result] = results
+
+  if (!result) {
+    throw createError({
+      statusCode: 404,
+      message: 'Attempt result not found',
+    })
+  }
+
+  return result
 }

@@ -11,15 +11,16 @@
   },
   "dependencies": {
     "@nuxt/ui": "^4.5.1",
-    "nuxt": "^4.3.1",
-    "drizzle-orm": "^1.0.0-beta.16-2ffd1a5",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^1.0.0-beta.9-e89174b",
     "mysql2": "^3.19.1",
+    "nuxt": "^4.3.1",
     "vue": "^3.5.30",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@iconify-json/lucide": "^1.2.96",
-    "drizzle-kit": "^1.0.0-beta.16-2ffd1a5",
-    "typescript": "^5.0.0"
+    "@iconify-json/lucide": "^1.2.97",
+    "drizzle-kit": "^1.0.0-beta.9-e89174b",
+    "typescript": "^5.9.3"
   }
 }

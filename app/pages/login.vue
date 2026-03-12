@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { AuthState } from '#shared/types/api'
+
 const studentId = ref('')
 const loading = ref(false)
 const error = ref('')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
@@ -54,7 +56,7 @@ async function login() {
           <UInput
             v-model="studentId"
             class="w-full"
-            placeholder="20240001"
+            placeholder="2024123456"
             icon="i-lucide-id-card"
             @keyup.enter="login"
           />

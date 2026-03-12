@@ -1,8 +1,8 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, isNotNull, or } from 'drizzle-orm'
 import { createError } from 'h3'
 
-import { db } from '../../database'
-import { attemptQuestions, testAttempts, tests } from '../../database/schema'
+import { db } from '#server/database'
+import { attemptQuestions, testAttempts, tests } from '#server/database/schema'
 import {
   cidrToSubnetMask,
   compareIps,
@@ -16,7 +16,7 @@ import {
   ipToBinary,
   sameNetwork,
 } from '../ipv4'
-import type { StudentSession } from './auth'
+import type { StudentSession } from '#server/utils/service/auth'
 
 type DateLike = Date | string | null
 
@@ -36,7 +36,8 @@ interface AttemptAnswerPayload {
   level3?: Array<{ network?: string; broadcast?: string }>
   level4?: string[]
   level5?: string[]
-  level6?: Array<{ network?: string; mask?: string; broadcast?: string }>
+  level6?: string[]
+  level7?: Array<{ network?: string; mask?: string; broadcast?: string }>
 }
 
 interface QuestionSeed {
@@ -220,58 +221,102 @@ function generateLevel4Questions(): QuestionSeed[] {
 }
 
 function generateLevel5Questions(): QuestionSeed[] {
+  const privateIp = () => {
+    const variant = Math.floor(Math.random() * 3)
+
+    if (variant === 0) {
+      return `${10}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`
+    }
+
+    if (variant === 1) {
+      return `${172}.${Math.floor(Math.random() * 16) + 16}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`
+    }
+
+    return `${192}.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`
+  }
+
+  const publicIp = () => {
+    while (true) {
+      const ip = generateRandomIp()
+      const [first = 0, second = 0] = ip.split('.').map(Number)
+      const isPrivate = first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168)
+      const isReserved = first === 127 || first === 0 || first >= 224 || (first === 169 && second === 254)
+      if (!isPrivate && !isReserved) {
+        return ip
+      }
+    }
+  }
+
+  const isUsablePublicHost = (cidrIp: string) => {
+    const [ip = '', cidrRaw = '30'] = cidrIp.split('/')
+    const cidr = Number(cidrRaw)
+    const network = getNetworkAddress(ip, cidr)
+    const broadcast = getBroadcastAddress(ip, cidr)
+    const [first = 0, second = 0] = ip.split('.').map(Number)
+    const isPrivate = first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168)
+    const isReserved = first === 127 || first === 0 || first >= 224 || (first === 169 && second === 254)
+
+    return !isPrivate && !isReserved && ip !== network && ip !== broadcast
+  }
+
   return Array.from({ length: 5 }, (_, index) => {
-    const ip1 = generateRandomIp()
-    const ip2 = generateRandomIp()
-    const mask = generateRandomSubnetMask()
+    const isPublicCandidate = index % 2 === 0
+    const ip = isPublicCandidate
+      ? publicIp()
+      : privateIp()
+    const cidrIp = `${ip}/30`
 
     return {
       section: 'level5',
       questionOrder: index + 1,
-      promptPrimary: ip1,
-      promptSecondary: ip2,
-      promptTertiary: mask,
-      expectedAnswer1: sameNetwork(ip1, ip2, mask) ? 'Yes' : 'No',
+      promptPrimary: cidrIp,
+      expectedAnswer1: isUsablePublicHost(cidrIp) ? '1' : '0',
       points: 1,
     }
   })
 }
 
 function generateLevel6Questions(): QuestionSeed[] {
-  const baseCidr = Math.random() < 0.5 ? 23 : 24
-  const firstOctet = Math.floor(Math.random() * 32) + 192
-  const secondOctet = Math.floor(Math.random() * 256)
-  const thirdOctet = baseCidr === 23 ? Math.floor(Math.random() * 128) * 2 : Math.floor(Math.random() * 256)
-  const baseNetwork = `${firstOctet}.${secondOctet}.${thirdOctet}.0`
+  return Array.from({ length: 5 }, (_, index) => {
+    const ip1 = generateRandomIp()
+    const ip2 = generateRandomIp()
+    const mask = generateRandomSubnetMask()
 
-  const subnetCount = Math.floor(Math.random() * 3) + 3
-  const maxHostsPerSubnet = baseCidr === 23 ? 510 : 254
-
-  const subnets = Array.from({ length: subnetCount }, (_, index) => {
-    const maxHosts = Math.max(12, Math.floor(maxHostsPerSubnet / subnetCount))
     return {
-      name: `Subnet ${index + 1}`,
-      hosts: Math.floor(Math.random() * (maxHosts - 10)) + 10,
+      section: 'level6',
+      questionOrder: index + 1,
+      promptPrimary: ip1,
+      promptSecondary: ip2,
+      promptTertiary: mask,
+      expectedAnswer1: sameNetwork(ip1, ip2, mask) ? '1' : '0',
+      points: 1,
     }
-  }).sort((left, right) => right.hosts - left.hosts)
+  })
+}
+
+function generateLevel7Questions(): QuestionSeed[] {
+  const baseNetwork = '105.97.14.0'
+  const baseCidr = 24
+  const requirements = [39, 21, 7, 6, 6]
 
   let currentNetwork = baseNetwork
 
-  return subnets.map((subnet, index) => {
-    const hostBits = Math.ceil(Math.log2(subnet.hosts + 2))
+  return requirements.map((hosts, index) => {
+    const hostBits = Math.ceil(Math.log2(hosts + 2))
     const subnetCidr = 32 - hostBits
     const networkAddress = currentNetwork
     const broadcastAddress = getBroadcastAddress(networkAddress, subnetCidr)
     const mask = cidrToSubnetMask(subnetCidr)
 
-    const nextOctets = broadcastAddress.split('.').map(Number)
-    nextOctets[3] += 1
+    const [octet0 = 0, octet1 = 0, octet2 = 0, octet3 = 0] = broadcastAddress.split('.').map(Number)
+    const nextOctets = [octet0, octet1, octet2, octet3]
+    nextOctets[3] = (nextOctets[3] ?? 0) + 1
 
     for (let currentIndex = 3; currentIndex >= 0; currentIndex -= 1) {
-      if (nextOctets[currentIndex] > 255) {
+      if ((nextOctets[currentIndex] ?? 0) > 255) {
         nextOctets[currentIndex] = 0
         if (currentIndex > 0) {
-          nextOctets[currentIndex - 1] += 1
+          nextOctets[currentIndex - 1] = (nextOctets[currentIndex - 1] ?? 0) + 1
         }
       }
     }
@@ -279,12 +324,12 @@ function generateLevel6Questions(): QuestionSeed[] {
     currentNetwork = nextOctets.join('.')
 
     return {
-      section: 'level6',
+      section: 'level7',
       questionOrder: index + 1,
       contextPrimary: baseNetwork,
       contextSecondary: String(baseCidr),
-      promptPrimary: subnet.name,
-      promptSecondary: String(subnet.hosts),
+      promptPrimary: `Subnet ${index + 1}`,
+      promptSecondary: String(hosts),
       expectedAnswer1: networkAddress,
       expectedAnswer2: mask,
       expectedAnswer3: broadcastAddress,
@@ -301,6 +346,7 @@ function buildQuestionSeeds() {
     ...generateLevel4Questions(),
     ...generateLevel5Questions(),
     ...generateLevel6Questions(),
+    ...generateLevel7Questions(),
   ]
 }
 
@@ -347,11 +393,18 @@ function getSectionAnswer(question: typeof attemptQuestions.$inferSelect, answer
   }
 
   if (question.section === 'level6') {
-    const row = answers.level6?.[question.questionOrder - 1]
     return {
-      answer1: row?.network?.trim() || null,
-      answer2: row?.mask?.trim() || null,
-      answer3: row?.broadcast?.trim() || null,
+      answer1: answers.level6?.[question.questionOrder - 1]?.trim() || null,
+      answer2: null,
+      answer3: null,
+    }
+  }
+
+  if (question.section === 'level7') {
+    return {
+      answer1: answers.level7?.[question.questionOrder - 1]?.network?.trim() || null,
+      answer2: answers.level7?.[question.questionOrder - 1]?.mask?.trim() || null,
+      answer3: answers.level7?.[question.questionOrder - 1]?.broadcast?.trim() || null,
     }
   }
 
@@ -424,7 +477,10 @@ function getTestState(test: typeof tests.$inferSelect, attemptRows: AttemptRow[]
     return 'invalid'
   }
 
-  const activeAttempt = attemptRows.find(row => row.status === 'in_progress' && !row.submittedAt && toDate(row.deadlineAt)?.getTime()! > now.getTime())
+  const activeAttempt = attemptRows.find((row) => {
+    const deadlineAt = toDate(row.deadlineAt)
+    return row.status === 'in_progress' && !row.submittedAt && Boolean(deadlineAt && deadlineAt.getTime() > now.getTime())
+  })
 
   if (activeAttempt) {
     return 'in_progress'
@@ -445,6 +501,35 @@ function getTestState(test: typeof tests.$inferSelect, attemptRows: AttemptRow[]
   return 'available'
 }
 
+function hasEnoughTimeForFullAttempt(test: typeof tests.$inferSelect) {
+  const endAt = toDate(test.endAt)
+
+  if (!endAt) {
+    return false
+  }
+
+  const now = new Date()
+  const requiredEnd = new Date(now.getTime() + test.durationMinutes * 60000)
+
+  return requiredEnd <= endAt
+}
+
+async function hasRevealedResultsForTest(testId: number) {
+  const rows = await db
+    .select({ id: testAttempts.id })
+    .from(testAttempts)
+    .where(and(
+      eq(testAttempts.testId, testId),
+      or(
+        isNotNull(testAttempts.submittedAt),
+        eq(testAttempts.status, 'expired'),
+      ),
+    ))
+    .limit(1)
+
+  return rows.length > 0
+}
+
 export function buildSections(
   questionRows: Array<typeof attemptQuestions.$inferSelect>,
   includeSolutions: boolean,
@@ -455,6 +540,7 @@ export function buildSections(
   const level4Rows = questionRows.filter(question => question.section === 'level4')
   const level5Rows = questionRows.filter(question => question.section === 'level5')
   const level6Rows = questionRows.filter(question => question.section === 'level6')
+  const level7Rows = questionRows.filter(question => question.section === 'level7')
 
   return {
     level1: level1Rows.map(question => ({
@@ -489,6 +575,13 @@ export function buildSections(
     })),
     level5: level5Rows.map(question => ({
       id: question.id,
+      addressCidr: question.promptPrimary,
+      studentAnswer: question.studentAnswer1,
+      correctAnswer: includeSolutions ? question.expectedAnswer1 : null,
+      earnedPoints: question.earnedPoints,
+    })),
+    level6: level6Rows.map(question => ({
+      id: question.id,
       ip1: question.promptPrimary,
       ip2: question.promptSecondary,
       mask: question.promptTertiary,
@@ -496,10 +589,10 @@ export function buildSections(
       correctAnswer: includeSolutions ? question.expectedAnswer1 : null,
       earnedPoints: question.earnedPoints,
     })),
-    level6: {
-      baseNetwork: level6Rows[0]?.contextPrimary || '',
-      baseCidr: Number(level6Rows[0]?.contextSecondary || '0'),
-      subnets: level6Rows.map(question => ({
+    level7: {
+      baseNetwork: level7Rows[0]?.contextPrimary || '',
+      baseCidr: Number(level7Rows[0]?.contextSecondary || '0'),
+      subnets: level7Rows.map(question => ({
         id: question.id,
         name: question.promptPrimary,
         hosts: Number(question.promptSecondary || '0'),
@@ -551,7 +644,9 @@ export async function getTestForAdmin(testId: number) {
     .where(eq(tests.id, testId))
     .limit(1)
 
-  if (rows.length === 0) {
+  const [testRow] = rows
+
+  if (!testRow) {
     throw createError({
       statusCode: 404,
       message: 'Test not found',
@@ -559,14 +654,14 @@ export async function getTestForAdmin(testId: number) {
   }
 
   return {
-    id: rows[0].id,
-    title: rows[0].title,
-    description: rows[0].description,
-    startAt: toIsoString(rows[0].startAt),
-    endAt: toIsoString(rows[0].endAt),
-    durationMinutes: rows[0].durationMinutes,
-    maxAttempts: rows[0].maxAttempts,
-    isPublished: Boolean(rows[0].isPublished),
+    id: testRow.id,
+    title: testRow.title,
+    description: testRow.description,
+    startAt: toIsoString(testRow.startAt),
+    endAt: toIsoString(testRow.endAt),
+    durationMinutes: testRow.durationMinutes,
+    maxAttempts: testRow.maxAttempts,
+    isPublished: Boolean(testRow.isPublished),
   }
 }
 
@@ -588,6 +683,13 @@ export async function createTest(input: SaveTestInput) {
       updatedAt: now,
     })
     .$returningId()
+
+  if (!inserted) {
+    throw createError({
+      statusCode: 500,
+      message: 'Unable to create test',
+    })
+  }
 
   return {
     id: inserted.id,
@@ -647,29 +749,38 @@ export async function listTestsForStudent(student: StudentSession) {
     syncedAttempts.push(await expireAttemptIfNeeded(attemptRow as AttemptRow))
   }
 
-  return testRows.map(testRow => {
+  const revealStateEntries = await Promise.all(testRows.map(async (testRow) => {
+    const hasRevealedResults = await hasRevealedResultsForTest(testRow.id)
+    return [testRow.id, hasRevealedResults] as const
+  }))
+  const revealStateByTestId = new Map<number, boolean>(revealStateEntries)
+
+  return testRows
+    .map(testRow => {
     const attemptRows = syncedAttempts.filter(row => row.testId === testRow.id)
     const activeAttempt = attemptRows.find(row => row.status === 'in_progress' && !row.submittedAt)
-    const latestSubmittedAttempt = attemptRows.find(row => row.submittedAt)
     const status = getTestState(testRow, attemptRows)
+    const hasSubmittedAttempt = attemptRows.some(row => Boolean(row.submittedAt))
+    const attemptsExhausted = attemptRows.length >= testRow.maxAttempts
+    const cannotFitDurationWindow = !hasEnoughTimeForFullAttempt(testRow)
+    const hasRevealedResults = revealStateByTestId.get(testRow.id) === true
+    const shouldHideForStudent = hasSubmittedAttempt
+      || attemptsExhausted
+      || status === 'invalid'
+      || hasRevealedResults
+      || (cannotFitDurationWindow && !activeAttempt)
+
+    if (shouldHideForStudent) {
+      return null
+    }
 
     return {
       id: testRow.id,
       title: testRow.title,
-      description: testRow.description,
-      startAt: toIsoString(testRow.startAt),
-      endAt: toIsoString(testRow.endAt),
-      durationMinutes: testRow.durationMinutes,
-      maxAttempts: testRow.maxAttempts,
-      attemptsUsed: attemptRows.length,
-      attemptsRemaining: Math.max(0, testRow.maxAttempts - attemptRows.length),
-      status,
       activeAttemptId: activeAttempt?.id ?? null,
-      latestScore: latestSubmittedAttempt?.score ?? null,
-      latestTotalQuestions: latestSubmittedAttempt?.totalQuestions ?? null,
-      latestSubmittedAt: toIsoString(latestSubmittedAttempt?.submittedAt ?? null),
     }
-  })
+    })
+    .filter(testRow => testRow !== null)
 }
 
 export async function startTestForStudent(testId: number, student: StudentSession) {
@@ -679,14 +790,21 @@ export async function startTestForStudent(testId: number, student: StudentSessio
     .where(eq(tests.id, testId))
     .limit(1)
 
-  if (testRows.length === 0) {
+  const [testRow] = testRows
+
+  if (!testRow) {
     throw createError({
       statusCode: 404,
       message: 'Test not found',
     })
   }
 
-  const testRow = testRows[0]
+  if (await hasRevealedResultsForTest(testId)) {
+    throw createError({
+      statusCode: 404,
+      message: 'Test not found',
+    })
+  }
 
   if (!testRow.isPublished) {
     throw createError({
@@ -708,12 +826,20 @@ export async function startTestForStudent(testId: number, student: StudentSessio
   }
 
   const activeAttempt = attemptRows.find(row => row.status === 'in_progress' && !row.submittedAt)
+  const hasSubmittedAttempt = attemptRows.some(row => Boolean(row.submittedAt))
 
   if (activeAttempt) {
     return {
       attemptId: activeAttempt.id,
       resumed: true,
     }
+  }
+
+  if (hasSubmittedAttempt) {
+    throw createError({
+      statusCode: 403,
+      message: 'You have already completed this test',
+    })
   }
 
   const state = getTestState(testRow, attemptRows)
@@ -746,6 +872,13 @@ export async function startTestForStudent(testId: number, student: StudentSessio
     })
   }
 
+  if (!hasEnoughTimeForFullAttempt(testRow)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Not enough time remaining to start this test',
+    })
+  }
+
   const now = new Date()
   const endAt = toDate(testRow.endAt)!
   const deadlineCandidate = new Date(now.getTime() + testRow.durationMinutes * 60000)
@@ -762,6 +895,13 @@ export async function startTestForStudent(testId: number, student: StudentSessio
       createdAt: now,
     })
     .$returningId()
+
+  if (!inserted) {
+    throw createError({
+      statusCode: 500,
+      message: 'Unable to start test attempt',
+    })
+  }
 
   const seeds = buildQuestionSeeds()
 
@@ -796,24 +936,42 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
     .where(and(eq(testAttempts.id, attemptId), eq(testAttempts.studentId, student.studentDbId)))
     .limit(1)
 
-  if (attemptRows.length === 0) {
+  const [attemptRow] = attemptRows
+
+  if (!attemptRow) {
     throw createError({
       statusCode: 404,
       message: 'Attempt not found',
     })
   }
 
-  const syncedAttempt = await expireAttemptIfNeeded(attemptRows[0] as AttemptRow)
+  const syncedAttempt = await expireAttemptIfNeeded(attemptRow as AttemptRow)
   const testRows = await db
     .select()
     .from(tests)
     .where(eq(tests.id, syncedAttempt.testId))
     .limit(1)
 
-  if (testRows.length === 0) {
+  const [testRow] = testRows
+
+  if (!testRow) {
     throw createError({
       statusCode: 404,
       message: 'Test not found',
+    })
+  }
+
+  if (syncedAttempt.submittedAt || syncedAttempt.status === 'expired') {
+    throw createError({
+      statusCode: 404,
+      message: 'Attempt not found',
+    })
+  }
+
+  if (await hasRevealedResultsForTest(syncedAttempt.testId)) {
+    throw createError({
+      statusCode: 404,
+      message: 'Attempt not found',
     })
   }
 
@@ -823,7 +981,7 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
     .where(eq(attemptQuestions.attemptId, attemptId))
     .orderBy(attemptQuestions.section, attemptQuestions.questionOrder)
 
-  const showSolutions = Boolean(syncedAttempt.submittedAt || syncedAttempt.status === 'expired')
+  const showSolutions = false
   const score = syncedAttempt.score ?? 0
   const totalQuestions = syncedAttempt.totalQuestions ?? questionRows.reduce((sum, question) => sum + question.points, 0)
 
@@ -831,8 +989,8 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
     attempt: {
       id: syncedAttempt.id,
       testId: syncedAttempt.testId,
-      title: testRows[0].title,
-      description: testRows[0].description,
+      title: testRow.title,
+      description: testRow.description,
       status: syncedAttempt.status,
       attemptNumber: syncedAttempt.attemptNumber,
       startedAt: toIsoString(syncedAttempt.startedAt),
@@ -854,14 +1012,16 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
     .where(and(eq(testAttempts.id, attemptId), eq(testAttempts.studentId, student.studentDbId)))
     .limit(1)
 
-  if (attemptRows.length === 0) {
+  const [attemptRow] = attemptRows
+
+  if (!attemptRow) {
     throw createError({
       statusCode: 404,
       message: 'Attempt not found',
     })
   }
 
-  const syncedAttempt = await expireAttemptIfNeeded(attemptRows[0] as AttemptRow)
+  const syncedAttempt = await expireAttemptIfNeeded(attemptRow as AttemptRow)
 
   if (syncedAttempt.status !== 'in_progress' || syncedAttempt.submittedAt) {
     throw createError({

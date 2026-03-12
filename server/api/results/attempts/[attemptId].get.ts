@@ -1,18 +1,18 @@
 import { withSafeApi } from '#server/utils/safe-api'
 import { requireAdminSession } from '#server/utils/service/auth'
-import { getResultsForTest } from '#server/utils/service/results'
+import { getResultByAttemptId } from '#server/utils/service/results'
 
 export default withSafeApi(async (event) => {
   requireAdminSession(event)
 
-  const testId = Number(getRouterParam(event, 'id'))
+  const attemptId = Number(getRouterParam(event, 'attemptId'))
 
-  if (!Number.isFinite(testId)) {
+  if (!Number.isFinite(attemptId)) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid test ID',
+      message: 'Invalid attempt ID',
     })
   }
 
-  return getResultsForTest(testId)
+  return getResultByAttemptId(attemptId)
 })

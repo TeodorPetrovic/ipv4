@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import { CalendarDate, Time } from '@internationalized/date'
+import type { AuthState } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
-  title: 'Create Test',
+  title: 'Edit Test',
 })
 
+const route = useRoute()
+const testId = Number(route.params.id)
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
 if (!authState.value?.isAdmin) {
   await navigateTo('/admin')
 }
+
+const loading = ref(false)
+const error = ref('')
 
 const now = new Date()
 
@@ -27,11 +33,25 @@ const durationMinutes = ref(60)
 const maxAttempts = ref(1)
 const isPublished = ref(true)
 
-const loading = ref(false)
-const error = ref('')
-
 const inputStartDate = useTemplateRef('inputStartDate')
 const inputEndDate = useTemplateRef('inputEndDate')
+
+function parseApiDatetime(isoString: string | null): { date: CalendarDate; time: Time } {
+  if (!isoString) {
+    const n = new Date()
+    return {
+      date: new CalendarDate(n.getFullYear(), n.getMonth() + 1, n.getDate()),
+      time: new Time(n.getHours(), n.getMinutes()),
+    }
+  }
+  const d = new Date(isoString)
+  const offset = d.getTimezoneOffset() * 60000
+  const local = new Date(d.getTime() - offset)
+  return {
+    date: new CalendarDate(local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate()),
+    time: new Time(local.getUTCHours(), local.getUTCMinutes()),
+  }
+}
 
 function toApiDatetime(date: CalendarDate, time: Time): string {
   const y = date.year
@@ -42,12 +62,49 @@ function toApiDatetime(date: CalendarDate, time: Time): string {
   return `${y}-${m}-${d}T${h}:${min}`
 }
 
+const { data, error: fetchError } = await useFetch<{
+  title: string
+  description: string | null
+  startAt: string | null
+  endAt: string | null
+  durationMinutes: number
+  maxAttempts: number
+  isPublished: boolean
+}>(`/api/tests/${testId}`, {
+  headers: requestHeaders,
+  immediate: Boolean(authState.value?.isAdmin),
+})
+
+watchEffect(() => {
+  if (!data.value) {
+    return
+  }
+
+  title.value = data.value.title
+
+  const start = parseApiDatetime(data.value.startAt)
+  startDate.value = start.date
+  startTime.value = start.time
+
+  const end = parseApiDatetime(data.value.endAt)
+  endDate.value = end.date
+  endTime.value = end.time
+
+  durationMinutes.value = data.value.durationMinutes
+  maxAttempts.value = data.value.maxAttempts
+  isPublished.value = data.value.isPublished
+})
+
+if (fetchError.value) {
+  error.value = (fetchError.value as any).data?.message || 'Unable to load test'
+}
+
 async function save() {
   error.value = ''
   loading.value = true
 
   try {
-    await $fetch('/api/tests', {
+    await $fetch(`/api/tests/${testId}`, {
       method: 'POST',
       body: {
         title: title.value,
@@ -59,9 +116,9 @@ async function save() {
       },
     })
 
-    await navigateTo('/admin/tests')
-  } catch (fetchError: any) {
-    error.value = fetchError.data?.message || 'Unable to create test'
+    await navigateTo(`/admin/tests/${testId}`)
+  } catch (requestError: any) {
+    error.value = requestError.data?.message || 'Unable to update test'
   } finally {
     loading.value = false
   }
@@ -72,7 +129,7 @@ async function save() {
   <div class="mx-auto max-w-xl">
     <UCard>
       <template #header>
-        <h1 class="text-lg font-semibold">Create new test</h1>
+        <h1 class="text-lg font-semibold">Edit test</h1>
       </template>
 
       <div class="space-y-4">
@@ -153,11 +210,11 @@ async function save() {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="outline" to="/admin/tests">
+          <UButton color="neutral" variant="outline" :to="`/admin/tests/${testId}`">
             Cancel
           </UButton>
           <UButton :loading="loading" @click="save">
-            Create test
+            Save changes
           </UButton>
         </div>
       </template>

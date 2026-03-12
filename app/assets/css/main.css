@@ -1,26 +1,50 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-@theme static {
-  --font-sans: "Public Sans", sans-serif;
-}
-
 :root {
   --ui-header-height: calc(var(--spacing) * 12);
+  --field-ok: #15803d;
+  --field-bad: #dc2626;
+}
+
+.field-correct,
+.field-wrong {
+  border-radius: calc(var(--ui-radius) * 1px);
+  overflow: hidden;
 }
 
 .field-correct input,
 .field-correct textarea,
 .field-correct button,
 .field-correct {
-  border-color: var(--ui-success) !important;
-  background-color: color-mix(in srgb, var(--ui-success) 12%, white) !important;
+  border-color: var(--field-ok) !important;
+}
+
+.field-correct input,
+.field-correct textarea,
+.field-correct button {
+  background-color: color-mix(in srgb, var(--field-ok) 18%, white) !important;
 }
 
 .field-wrong input,
 .field-wrong textarea,
 .field-wrong button,
 .field-wrong {
-  border-color: var(--ui-error) !important;
-  background-color: color-mix(in srgb, var(--ui-error) 10%, white) !important;
+  border-color: var(--field-bad) !important;
+}
+
+.field-wrong input,
+.field-wrong textarea,
+.field-wrong button {
+  background-color: color-mix(in srgb, var(--field-bad) 16%, white) !important;
+}
+
+.table-shell thead th {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.dark .table-shell thead th {
+  background-color: #374151;
+  color: #f3f4f6;
 }

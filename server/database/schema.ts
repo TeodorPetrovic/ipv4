@@ -1,20 +1,22 @@
 import { datetime, int, mysqlTable, text, varchar } from 'drizzle-orm/mysql-core'
 
-export const appSettings = mysqlTable('app_settings', {
-  id: int('id').primaryKey(),
-  adminEmail: varchar('admin_email', { length: 255 }).notNull(),
-  adminPassword: varchar('admin_password', { length: 255 }).notNull(),
+export const admins = mysqlTable('admin', {
+  id: int('admin_id').primaryKey().autoincrement(),
+  email: varchar('email', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  createdAt: datetime('created_at'),
+  updatedAt: datetime('updated_at'),
 })
 
-export const students = mysqlTable('students', {
-  id: int('id').primaryKey().autoincrement(),
+export const students = mysqlTable('student', {
+  id: int('student_id').primaryKey().autoincrement(),
   name: varchar('name', { length: 255 }).notNull(),
-  studentId: varchar('student_id', { length: 100 }).notNull(),
+  studentId: varchar('student_code', { length: 100 }).notNull(),
   createdAt: datetime('created_at'),
 })
 
-export const tests = mysqlTable('tests', {
-  id: int('id').primaryKey().autoincrement(),
+export const tests = mysqlTable('test', {
+  id: int('test_id').primaryKey().autoincrement(),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   startAt: datetime('start_at').notNull(),
@@ -26,10 +28,10 @@ export const tests = mysqlTable('tests', {
   updatedAt: datetime('updated_at'),
 })
 
-export const testAttempts = mysqlTable('test_attempts', {
-  id: int('id').primaryKey().autoincrement(),
-  testId: int('test_id').notNull(),
-  studentId: int('student_id').notNull(),
+export const testAttempts = mysqlTable('test_attempt', {
+  id: int('test_attempt_id').primaryKey().autoincrement(),
+  testId: int('test_id').notNull().references(() => tests.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  studentId: int('student_id').notNull().references(() => students.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   attemptNumber: int('attempt_number').notNull(),
   status: varchar('status', { length: 20 }).notNull(),
   startedAt: datetime('started_at').notNull(),
@@ -40,9 +42,9 @@ export const testAttempts = mysqlTable('test_attempts', {
   createdAt: datetime('created_at'),
 })
 
-export const attemptQuestions = mysqlTable('attempt_questions', {
-  id: int('id').primaryKey().autoincrement(),
-  attemptId: int('attempt_id').notNull(),
+export const attemptQuestions = mysqlTable('attempt_question', {
+  id: int('attempt_question_id').primaryKey().autoincrement(),
+  attemptId: int('attempt_id').notNull().references(() => testAttempts.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   section: varchar('section', { length: 32 }).notNull(),
   questionOrder: int('question_order').notNull(),
   contextPrimary: varchar('context_primary', { length: 255 }),

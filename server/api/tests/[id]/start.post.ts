@@ -1,7 +1,8 @@
-import { requireStudentSession } from '../../../utils/service/auth'
-import { startTestForStudent } from '../../../utils/service/tests'
+import { withSafeApi } from '#server/utils/safe-api'
+import { requireStudentSession } from '#server/utils/service/auth'
+import { startTestForStudent } from '#server/utils/service/tests'
 
-export default defineEventHandler(async (event) => {
+export default withSafeApi(async (event) => {
   const testId = Number(getRouterParam(event, 'id'))
 
   if (!Number.isFinite(testId)) {
