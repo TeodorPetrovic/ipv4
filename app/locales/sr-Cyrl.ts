@@ -1,0 +1,104 @@
+const srCyrl = {
+  layout: {
+    logout: 'Одјава',
+    languageSwitcher: 'Промени језик',
+  },
+  ipConverter: {
+    title: 'IP конвертор',
+    decimalToBinary: 'Децимални у бинарни',
+    binaryToDecimal: 'Бинарни у децимални',
+    invalidValue: 'Невалидна вредност',
+  },
+  timer: {
+    remainingTime: 'Преостало време',
+  },
+  common: {
+    yes: 'Да',
+    no: 'Не',
+    backToTests: 'Назад на листу тестова',
+    submitAnswers: 'Предај одговоре',
+  },
+  test: {
+    errors: {
+      loadFailed: 'Није могуће учитати овај покушај.',
+      submitTitle: 'Грешка при предавању',
+      submitFailed: 'Није могуће предати овај покушај.',
+    },
+  },
+  results: {
+    errors: {
+      loadFailed: 'Није могуће учитати резултате',
+      unavailable: 'Резултати нису доступни.',
+    },
+    expired: 'Рок за предају је истекао',
+    submitted: 'Тест предат',
+    yourResult: 'Ваш резултат',
+    correctPoints: 'тачних поена',
+    passed: 'Тест положен',
+    partial: 'Делимично тачно',
+    failed: 'Тест није положен',
+    yourAnswer: 'Ваш одговор',
+    correctAnswer: 'Тачан одговор',
+    yourNetworkAddress: 'Ваша мрежна адреса',
+    yourMask: 'Ваша маска',
+    yourBroadcast: 'Ваша емисиона адреса',
+    correctNetworkAddress: 'Тачна мрежна адреса',
+    correctMask: 'Тачна маска',
+    correctBroadcast: 'Тачна емисиона адреса',
+  },
+  levels: {
+    level1: {
+      title: 'Ниво 1 · Превођење из бинарног у децимални облик',
+      description: 'Претворите бинарну IPv4 адресу у децималну форму.',
+      binary: 'Бинарни',
+      decimalAnswer: 'Децимални одговор',
+    },
+    level2: {
+      title: 'Ниво 2 · IPv4 класа',
+      description: 'Одредите класу сваке IPv4 адресе.',
+      ipAddress: 'IP адреса',
+      class: 'Класа',
+    },
+    level3: {
+      title: 'Ниво 3 · Мрежна и емисиона адреса',
+      description: 'Израчунајте мрежну и емисиону адресу за сваки пар хост/CIDR.',
+      hostAddress: 'Адреса хоста',
+      networkAddress: 'Мрежна адреса',
+      broadcastAddress: 'Емисиона адреса',
+      correctNetwork: 'Тачна мрежна',
+      correctBroadcast: 'Тачна емисиона',
+    },
+    level4: {
+      title: 'Ниво 4 · Капацитет мреже',
+      description: 'Упишите број употребљивих хостова за сваку маску подмреже.',
+      subnetMask: 'Маска подмреже',
+      usableHosts: 'Употребљиви хостови',
+    },
+    level5: {
+      title: 'Ниво 5 · Адресе рачунара са јавним Интернет адресама',
+      description: 'Одредите да ли се дата адреса хоста може користити за јавно Интернет адресирање.',
+      address: 'Адреса',
+      usableOnInternet: 'Употребљива на Интернету?',
+    },
+    level6: {
+      title: 'Ниво 6 · Локалне и удаљене адресе',
+      description: 'Одредите да ли сваки пар адреса припада истој мрежи.',
+      address1: 'Адреса 1',
+      address2: 'Адреса 2',
+      subnetMask: 'Маска подмреже',
+      sameNetwork: 'Иста мрежа?',
+    },
+    level7: {
+      title: 'Ниво 7 · Пројекат подмрежавања',
+      description: 'Поделите {{network}}/{{cidr}} на захтеване величине подмрежа.',
+      subnet: 'Подмрежа',
+      hosts: 'Хостова',
+      networkAddress: 'Мрежна адреса',
+      subnetMask: 'Маска подмреже',
+      broadcastAddress: 'Емисиона адреса',
+    },
+  },
+} as const
+
+export default srCyrl
+export type TranslationShape = typeof srCyrl

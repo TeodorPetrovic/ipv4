@@ -1,10 +1,12 @@
 import { computed, ref } from 'vue'
+import { useAppI18n } from '~/composables/useAppI18n'
 
 function decimalToBinary(decimal: number) {
   return decimal.toString(2).padStart(8, '0')
 }
 
 export function useIpOctetConverter() {
+  const { t } = useAppI18n()
   const decimalOctetInput = ref('')
   const binaryOctetInput = ref('')
 
@@ -17,7 +19,7 @@ export function useIpOctetConverter() {
 
     const parsed = Number(value)
     if (!Number.isInteger(parsed) || parsed < 0 || parsed > 255) {
-      return 'Невалидна вредност'
+      return t('ipConverter.invalidValue')
     }
 
     return decimalToBinary(parsed)
@@ -31,7 +33,7 @@ export function useIpOctetConverter() {
     }
 
     if (!/^[01]{8}$/.test(value)) {
-      return 'Невалидна вредност'
+      return t('ipConverter.invalidValue')
     }
 
     return String(Number.parseInt(value, 2))

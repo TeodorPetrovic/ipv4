@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { authState, ensureAuthSession, refreshAuthSession } = useAuthSession()
 const colorMode = useColorMode()
+const { t } = useAppI18n()
 
 await ensureAuthSession()
 
@@ -10,7 +11,7 @@ if (!authState.value?.student) {
 
 const profileItems = computed(() => [[
   {
-    label: 'Logout',
+    label: t('layout.logout'),
     icon: 'i-lucide-log-out',
     onSelect: async () => {
       await $fetch('/api/auth/logout', {
@@ -35,6 +36,8 @@ function toggleColorMode() {
         <p class="text-lg font-semibold">IP Singidunum</p>
 
         <div class="ml-auto flex items-center gap-2">
+          <LanguageSwitcher />
+
           <UDropdownMenu :items="profileItems">
             <UUser
               :name="authState?.student?.name || 'Student'"
