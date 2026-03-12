@@ -12,6 +12,8 @@ const loadingPage = ref(false)
 const pageError = ref('')
 const globalFilter = ref('')
 const tests = ref<StudentTest[]>([])
+const confirmOpen = ref(false)
+const selectedTest = ref<StudentTest | null>(null)
 
 const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
@@ -51,9 +53,30 @@ const columns: TableColumn<StudentTest>[] = [
   },
   {
     id: 'action',
-    header: '',
+    header: 'Action',
   },
 ]
+
+function askStartTest(test: StudentTest) {
+  selectedTest.value = test
+  confirmOpen.value = true
+}
+
+function cancelStartTest() {
+  confirmOpen.value = false
+  selectedTest.value = null
+}
+
+async function confirmStartTest() {
+  const test = selectedTest.value
+  if (!test) {
+    return
+  }
+
+  confirmOpen.value = false
+  selectedTest.value = null
+  await openTest(test)
+}
 
 async function openTest(test: StudentTest) {
   pageError.value = ''
@@ -118,18 +141,43 @@ async function openTest(test: StudentTest) {
           </div>
         </template>
 
+        <template #action-header>
+          <div class="w-full text-right">
+            Action
+          </div>
+        </template>
+
         <template #action-cell="{ row }">
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="outline"
-            :loading="loadingActionId === row.original.id"
-            @click="openTest(row.original)"
-          >
-            {{ actionLabel(row.original) }}
-          </UButton>
+          <div class="flex w-full justify-end">
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="outline"
+              :loading="loadingActionId === row.original.id"
+              @click="askStartTest(row.original)"
+            >
+              {{ actionLabel(row.original) }}
+            </UButton>
+          </div>
         </template>
       </UTable>
     </div>
+
+    <UModal
+      v-model:open="confirmOpen"
+      title="Start test"
+      description="Do you want to start this test now?"
+    >
+      <template #footer>
+        <div class="flex w-full justify-end gap-2">
+          <UButton color="neutral" variant="ghost" @click="cancelStartTest">
+            Cancel
+          </UButton>
+          <UButton color="primary" @click="confirmStartTest">
+            Yes
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

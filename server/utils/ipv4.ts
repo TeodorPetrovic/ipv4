@@ -15,7 +15,7 @@ export function binaryToIp(binary: string): string {
 }
 
 export function getIpClass(ip: string): string {
-  const first = parseInt(ip.split('.')[0])
+  const first = parseInt(ip.split('.')[0] ?? '', 10)
   if (first >= 1 && first <= 126) return 'A'
   if (first >= 128 && first <= 191) return 'B'
   if (first >= 192 && first <= 223) return 'C'
@@ -42,13 +42,16 @@ export function subnetMaskToCidr(mask: string): number {
 export function getNetworkAddress(ip: string, cidr: number): string {
   const ipOctets = ip.split('.').map(Number)
   const maskOctets = cidrToSubnetMask(cidr).split('.').map(Number)
-  return ipOctets.map((o, i) => o & maskOctets[i]).join('.')
+  return ipOctets.map((o, i) => o & (maskOctets[i] ?? 0)).join('.')
 }
 
 export function getBroadcastAddress(ip: string, cidr: number): string {
   const ipOctets = ip.split('.').map(Number)
   const maskOctets = cidrToSubnetMask(cidr).split('.').map(Number)
-  return ipOctets.map((o, i) => (o & maskOctets[i]) | (~maskOctets[i] & 255)).join('.')
+  return ipOctets.map((o, i) => {
+    const mask = maskOctets[i] ?? 0
+    return (o & mask) | (~mask & 255)
+  }).join('.')
 }
 
 export function getHostCount(cidr: number): number {
@@ -83,6 +86,8 @@ export function generateRandomIp(classType: string | null = null): string {
   if (classType === 'A') first = Math.floor(Math.random() * 126) + 1
   else if (classType === 'B') first = Math.floor(Math.random() * 64) + 128
   else if (classType === 'C') first = Math.floor(Math.random() * 32) + 192
+  else if (classType === 'D') first = Math.floor(Math.random() * 16) + 224
+  else if (classType === 'E') first = Math.floor(Math.random() * 16) + 240
   else {
     first = Math.floor(Math.random() * 223) + 1
     if (first === 127) first = 128
@@ -99,5 +104,6 @@ export function generateRandomCidr(min = 8, max = 30): number {
 
 export function generateRandomSubnetMask(): string {
   const validCidrs = [8, 16, 24, 25, 26, 27, 28, 29, 30]
-  return cidrToSubnetMask(validCidrs[Math.floor(Math.random() * validCidrs.length)])
+  const randomCidr = validCidrs[Math.floor(Math.random() * validCidrs.length)] ?? 24
+  return cidrToSubnetMask(randomCidr)
 }

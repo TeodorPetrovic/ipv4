@@ -110,9 +110,6 @@ const columns: TableColumn<AdminTest>[] = [
             <UBadge color="neutral" variant="soft">
               {{ row.original.durationMinutes }} min
             </UBadge>
-            <UBadge color="neutral" variant="soft">
-              Attempts {{ row.original.maxAttempts }}
-            </UBadge>
           </div>
         </template>
 

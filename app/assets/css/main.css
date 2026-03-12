@@ -3,8 +3,8 @@
 
 :root {
   --ui-header-height: calc(var(--spacing) * 12);
-  --field-ok: #15803d;
-  --field-bad: #dc2626;
+  --field-ok: #16a34a;
+  --field-bad: #ef4444;
 }
 
 .field-correct,
@@ -23,7 +23,7 @@
 .field-correct input,
 .field-correct textarea,
 .field-correct button {
-  background-color: color-mix(in srgb, var(--field-ok) 18%, white) !important;
+  background-color: color-mix(in srgb, var(--field-ok) 54%, white) !important;
 }
 
 .field-wrong input,
@@ -36,7 +36,7 @@
 .field-wrong input,
 .field-wrong textarea,
 .field-wrong button {
-  background-color: color-mix(in srgb, var(--field-bad) 16%, white) !important;
+  background-color: color-mix(in srgb, var(--field-bad) 48%, white) !important;
 }
 
 .table-shell thead th {

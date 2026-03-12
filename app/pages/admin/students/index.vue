@@ -56,10 +56,6 @@ const columns: TableColumn<AdminStudent>[] = [
     header: 'Created',
   },
   {
-    accessorKey: 'attemptsCount',
-    header: 'Attempts',
-  },
-  {
     id: 'action',
     header: '',
   },

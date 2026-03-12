@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, or } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { createError } from 'h3'
 
 import { db } from '#server/database'
@@ -17,17 +17,33 @@ import {
   sameNetwork,
 } from '../ipv4'
 import type { StudentSession } from '#server/utils/service/auth'
+import { getScoringSettings } from '#server/utils/service/settings'
+import type { ScoringSettings } from '#server/utils/service/settings'
 
 type DateLike = Date | string | null
 
 interface SaveTestInput {
   title: string
-  description?: string | null
   startAt: string
   endAt: string
   durationMinutes: number
   maxAttempts: number
   isPublished?: boolean | number
+  testPoints?: number
+  unlimitedDuration?: boolean
+  unlimitedAttempts?: boolean
+}
+
+interface TestMeta {
+  testPoints: number
+  unlimitedDuration: boolean
+  unlimitedAttempts: boolean
+}
+
+const DEFAULT_TEST_META: TestMeta = {
+  testPoints: 100,
+  unlimitedDuration: false,
+  unlimitedAttempts: false,
 }
 
 interface AttemptAnswerPayload {
@@ -108,20 +124,40 @@ function validateTestWindow(startAt: Date, endAt: Date, durationMinutes: number)
       message: 'Duration must be at least 1 minute',
     })
   }
+}
 
-  if (new Date(startAt.getTime() + durationMinutes * 60000) > endAt) {
-    throw createError({
-      statusCode: 400,
-      message: 'Start date plus duration cannot be greater than end date',
-    })
+function parseBoolean(value: unknown, fallback = false) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return value === 1
+  }
+
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true' || value === '1'
+  }
+
+  return fallback
+}
+
+function getTestMeta(testRow: typeof tests.$inferSelect): TestMeta {
+  return {
+    testPoints: testRow.testPoints ?? DEFAULT_TEST_META.testPoints,
+    unlimitedDuration: Boolean(testRow.unlimitedDuration),
+    unlimitedAttempts: Boolean(testRow.unlimitedAttempts),
   }
 }
 
 function normalizeTestInput(input: SaveTestInput) {
   const title = input.title.trim()
-  const description = input.description?.trim() || null
   const durationMinutes = Number(input.durationMinutes)
-  const maxAttempts = Number(input.maxAttempts)
+  const requestedMaxAttempts = Number(input.maxAttempts)
+  const requestedTestPoints = Number(input.testPoints ?? DEFAULT_TEST_META.testPoints)
+  const testPoints = Number.isFinite(requestedTestPoints) ? Math.max(1, Math.round(requestedTestPoints)) : DEFAULT_TEST_META.testPoints
+  const unlimitedDuration = parseBoolean(input.unlimitedDuration, false)
+  const unlimitedAttempts = parseBoolean(input.unlimitedAttempts, false)
 
   if (!title) {
     throw createError({
@@ -137,26 +173,32 @@ function normalizeTestInput(input: SaveTestInput) {
     })
   }
 
-  if (!Number.isFinite(maxAttempts) || maxAttempts < 1) {
-    throw createError({
-      statusCode: 400,
-      message: 'Max attempts must be at least 1',
-    })
-  }
-
   const startAt = parseRequiredDate(input.startAt, 'Start date')
   const endAt = parseRequiredDate(input.endAt, 'End date')
 
   validateTestWindow(startAt, endAt, durationMinutes)
 
+  if (!unlimitedDuration && new Date(startAt.getTime() + durationMinutes * 60000) > endAt) {
+    throw createError({
+      statusCode: 400,
+      message: 'Start date plus duration cannot be greater than end date',
+    })
+  }
+
+  const maxAttempts = unlimitedAttempts
+    ? 2147483647
+    : Math.max(1, Math.round(Number.isFinite(requestedMaxAttempts) ? requestedMaxAttempts : 1))
+
   return {
     title,
-    description,
     startAt,
     endAt,
     durationMinutes,
     maxAttempts,
-    isPublished: input.isPublished === false || input.isPublished === 0 ? 0 : 1,
+    isPublished: 1,
+    testPoints,
+    unlimitedDuration: unlimitedDuration ? 1 : 0,
+    unlimitedAttempts: unlimitedAttempts ? 1 : 0,
   }
 }
 
@@ -173,7 +215,7 @@ function generateLevel1Questions(): QuestionSeed[] {
 }
 
 function generateLevel2Questions(): QuestionSeed[] {
-  const classes = ['A', 'B', 'C']
+  const classes = ['A', 'B', 'C', 'D', 'E']
 
   return Array.from({ length: 5 }, (_, index) => {
     const classType = classes[Math.floor(Math.random() * classes.length)]
@@ -350,6 +392,51 @@ function buildQuestionSeeds() {
   ]
 }
 
+function pointsForSection(section: string, settings: ScoringSettings) {
+  if (section === 'level1') return settings.level1
+  if (section === 'level2') return settings.level2
+  if (section === 'level3') return settings.level3
+  if (section === 'level4') return settings.level4
+  if (section === 'level5') return settings.level5
+  if (section === 'level6') return settings.level6
+  if (section === 'level7') return settings.level7
+  return 0
+}
+
+function calculateCorrectnessRatio(
+  question: typeof attemptQuestions.$inferSelect,
+  answers: { answer1: string | null; answer2: string | null; answer3: string | null },
+) {
+  if (question.section === 'level4') {
+    return Number(answers.answer1 || '0') === Number(question.expectedAnswer1) ? 1 : 0
+  }
+
+  let correctParts = 0
+  let totalParts = 1
+
+  if (compareIps(answers.answer1 || '', question.expectedAnswer1)) {
+    correctParts += 1
+  }
+
+  if (question.expectedAnswer2) {
+    totalParts += 1
+  }
+
+  if (question.expectedAnswer2 && compareIps(answers.answer2 || '', question.expectedAnswer2)) {
+    correctParts += 1
+  }
+
+  if (question.expectedAnswer3) {
+    totalParts += 1
+  }
+
+  if (question.expectedAnswer3 && compareIps(answers.answer3 || '', question.expectedAnswer3)) {
+    correctParts += 1
+  }
+
+  return correctParts / totalParts
+}
+
 function getSectionAnswer(question: typeof attemptQuestions.$inferSelect, answers: AttemptAnswerPayload) {
   if (question.section === 'level1') {
     return {
@@ -415,31 +502,6 @@ function getSectionAnswer(question: typeof attemptQuestions.$inferSelect, answer
   }
 }
 
-function calculateEarnedPoints(
-  question: typeof attemptQuestions.$inferSelect,
-  answers: { answer1: string | null; answer2: string | null; answer3: string | null },
-) {
-  if (question.section === 'level4') {
-    return Number(answers.answer1 || '0') === Number(question.expectedAnswer1) ? 1 : 0
-  }
-
-  let earned = 0
-
-  if (compareIps(answers.answer1 || '', question.expectedAnswer1)) {
-    earned += 1
-  }
-
-  if (question.expectedAnswer2 && compareIps(answers.answer2 || '', question.expectedAnswer2)) {
-    earned += 1
-  }
-
-  if (question.expectedAnswer3 && compareIps(answers.answer3 || '', question.expectedAnswer3)) {
-    earned += 1
-  }
-
-  return earned
-}
-
 async function expireAttemptIfNeeded(attempt: AttemptRow) {
   const deadlineAt = toDate(attempt.deadlineAt)
 
@@ -464,7 +526,7 @@ async function expireAttemptIfNeeded(attempt: AttemptRow) {
   }
 }
 
-function getTestState(test: typeof tests.$inferSelect, attemptRows: AttemptRow[]) {
+function getTestState(test: typeof tests.$inferSelect, attemptRows: AttemptRow[], meta: TestMeta) {
   const now = new Date()
   const startAt = toDate(test.startAt)
   const endAt = toDate(test.endAt)
@@ -473,7 +535,7 @@ function getTestState(test: typeof tests.$inferSelect, attemptRows: AttemptRow[]
     return 'invalid'
   }
 
-  if (new Date(startAt.getTime() + test.durationMinutes * 60000) > endAt) {
+  if (!meta.unlimitedDuration && new Date(startAt.getTime() + test.durationMinutes * 60000) > endAt) {
     return 'invalid'
   }
 
@@ -501,7 +563,11 @@ function getTestState(test: typeof tests.$inferSelect, attemptRows: AttemptRow[]
   return 'available'
 }
 
-function hasEnoughTimeForFullAttempt(test: typeof tests.$inferSelect) {
+function hasEnoughTimeForFullAttempt(test: typeof tests.$inferSelect, meta: TestMeta) {
+  if (meta.unlimitedDuration) {
+    return true
+  }
+
   const endAt = toDate(test.endAt)
 
   if (!endAt) {
@@ -512,22 +578,6 @@ function hasEnoughTimeForFullAttempt(test: typeof tests.$inferSelect) {
   const requiredEnd = new Date(now.getTime() + test.durationMinutes * 60000)
 
   return requiredEnd <= endAt
-}
-
-async function hasRevealedResultsForTest(testId: number) {
-  const rows = await db
-    .select({ id: testAttempts.id })
-    .from(testAttempts)
-    .where(and(
-      eq(testAttempts.testId, testId),
-      or(
-        isNotNull(testAttempts.submittedAt),
-        eq(testAttempts.status, 'expired'),
-      ),
-    ))
-    .limit(1)
-
-  return rows.length > 0
 }
 
 export function buildSections(
@@ -620,19 +670,22 @@ export async function listTestsForAdmin() {
 
   return testRows.map(testRow => {
     const rowsForTest = attemptRows.filter(row => row.testId === testRow.id)
+    const meta = getTestMeta(testRow)
 
     return {
       id: testRow.id,
       title: testRow.title,
-      description: testRow.description,
       startAt: toIsoString(testRow.startAt),
       endAt: toIsoString(testRow.endAt),
       durationMinutes: testRow.durationMinutes,
       maxAttempts: testRow.maxAttempts,
       isPublished: Boolean(testRow.isPublished),
+      testPoints: meta.testPoints,
+      unlimitedDuration: meta.unlimitedDuration,
+      unlimitedAttempts: meta.unlimitedAttempts,
       attemptsCount: rowsForTest.length,
       submissionsCount: rowsForTest.filter(row => row.submittedAt).length,
-      isInvalid: getTestState(testRow, rowsForTest as AttemptRow[]) === 'invalid',
+      isInvalid: getTestState(testRow, rowsForTest as AttemptRow[], meta) === 'invalid',
     }
   })
 }
@@ -653,15 +706,19 @@ export async function getTestForAdmin(testId: number) {
     })
   }
 
+  const meta = getTestMeta(testRow)
+
   return {
     id: testRow.id,
     title: testRow.title,
-    description: testRow.description,
     startAt: toIsoString(testRow.startAt),
     endAt: toIsoString(testRow.endAt),
     durationMinutes: testRow.durationMinutes,
     maxAttempts: testRow.maxAttempts,
     isPublished: Boolean(testRow.isPublished),
+    testPoints: meta.testPoints,
+    unlimitedDuration: meta.unlimitedDuration,
+    unlimitedAttempts: meta.unlimitedAttempts,
   }
 }
 
@@ -673,12 +730,14 @@ export async function createTest(input: SaveTestInput) {
     .insert(tests)
     .values({
       title: normalized.title,
-      description: normalized.description,
       startAt: normalized.startAt,
       endAt: normalized.endAt,
       durationMinutes: normalized.durationMinutes,
       maxAttempts: normalized.maxAttempts,
       isPublished: normalized.isPublished,
+      testPoints: normalized.testPoints,
+      unlimitedDuration: normalized.unlimitedDuration,
+      unlimitedAttempts: normalized.unlimitedAttempts,
       createdAt: now,
       updatedAt: now,
     })
@@ -715,12 +774,14 @@ export async function updateTest(testId: number, input: SaveTestInput) {
     .update(tests)
     .set({
       title: normalized.title,
-      description: normalized.description,
       startAt: normalized.startAt,
       endAt: normalized.endAt,
       durationMinutes: normalized.durationMinutes,
       maxAttempts: normalized.maxAttempts,
       isPublished: normalized.isPublished,
+      testPoints: normalized.testPoints,
+      unlimitedDuration: normalized.unlimitedDuration,
+      unlimitedAttempts: normalized.unlimitedAttempts,
       updatedAt: new Date(),
     })
     .where(eq(tests.id, testId))
@@ -734,7 +795,6 @@ export async function listTestsForStudent(student: StudentSession) {
   const testRows = await db
     .select()
     .from(tests)
-    .where(eq(tests.isPublished, 1))
     .orderBy(desc(tests.startAt), desc(tests.id))
 
   const rawAttemptRows = await db
@@ -749,25 +809,17 @@ export async function listTestsForStudent(student: StudentSession) {
     syncedAttempts.push(await expireAttemptIfNeeded(attemptRow as AttemptRow))
   }
 
-  const revealStateEntries = await Promise.all(testRows.map(async (testRow) => {
-    const hasRevealedResults = await hasRevealedResultsForTest(testRow.id)
-    return [testRow.id, hasRevealedResults] as const
-  }))
-  const revealStateByTestId = new Map<number, boolean>(revealStateEntries)
-
   return testRows
     .map(testRow => {
     const attemptRows = syncedAttempts.filter(row => row.testId === testRow.id)
+    const meta = getTestMeta(testRow)
     const activeAttempt = attemptRows.find(row => row.status === 'in_progress' && !row.submittedAt)
-    const status = getTestState(testRow, attemptRows)
-    const hasSubmittedAttempt = attemptRows.some(row => Boolean(row.submittedAt))
-    const attemptsExhausted = attemptRows.length >= testRow.maxAttempts
-    const cannotFitDurationWindow = !hasEnoughTimeForFullAttempt(testRow)
-    const hasRevealedResults = revealStateByTestId.get(testRow.id) === true
-    const shouldHideForStudent = hasSubmittedAttempt
-      || attemptsExhausted
-      || status === 'invalid'
-      || hasRevealedResults
+    const status = getTestState(testRow, attemptRows, meta)
+    const cannotFitDurationWindow = !hasEnoughTimeForFullAttempt(testRow, meta)
+    const shouldHideForStudent = status === 'invalid'
+      || status === 'attempts_exhausted'
+      || status === 'closed'
+      || status === 'upcoming'
       || (cannotFitDurationWindow && !activeAttempt)
 
     if (shouldHideForStudent) {
@@ -799,19 +851,7 @@ export async function startTestForStudent(testId: number, student: StudentSessio
     })
   }
 
-  if (await hasRevealedResultsForTest(testId)) {
-    throw createError({
-      statusCode: 404,
-      message: 'Test not found',
-    })
-  }
-
-  if (!testRow.isPublished) {
-    throw createError({
-      statusCode: 403,
-      message: 'Test is not published',
-    })
-  }
+  const meta = getTestMeta(testRow)
 
   const rawAttemptRows = await db
     .select()
@@ -826,8 +866,6 @@ export async function startTestForStudent(testId: number, student: StudentSessio
   }
 
   const activeAttempt = attemptRows.find(row => row.status === 'in_progress' && !row.submittedAt)
-  const hasSubmittedAttempt = attemptRows.some(row => Boolean(row.submittedAt))
-
   if (activeAttempt) {
     return {
       attemptId: activeAttempt.id,
@@ -835,14 +873,7 @@ export async function startTestForStudent(testId: number, student: StudentSessio
     }
   }
 
-  if (hasSubmittedAttempt) {
-    throw createError({
-      statusCode: 403,
-      message: 'You have already completed this test',
-    })
-  }
-
-  const state = getTestState(testRow, attemptRows)
+  const state = getTestState(testRow, attemptRows, meta)
 
   if (state === 'invalid') {
     throw createError({
@@ -872,7 +903,7 @@ export async function startTestForStudent(testId: number, student: StudentSessio
     })
   }
 
-  if (!hasEnoughTimeForFullAttempt(testRow)) {
+  if (!hasEnoughTimeForFullAttempt(testRow, meta)) {
     throw createError({
       statusCode: 403,
       message: 'Not enough time remaining to start this test',
@@ -881,8 +912,12 @@ export async function startTestForStudent(testId: number, student: StudentSessio
 
   const now = new Date()
   const endAt = toDate(testRow.endAt)!
-  const deadlineCandidate = new Date(now.getTime() + testRow.durationMinutes * 60000)
-  const deadlineAt = deadlineCandidate < endAt ? deadlineCandidate : endAt
+  const deadlineAt = meta.unlimitedDuration
+    ? endAt
+    : (() => {
+      const deadlineCandidate = new Date(now.getTime() + testRow.durationMinutes * 60000)
+      return deadlineCandidate < endAt ? deadlineCandidate : endAt
+    })()
   const [inserted] = await db
     .insert(testAttempts)
     .values({
@@ -946,6 +981,14 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
   }
 
   const syncedAttempt = await expireAttemptIfNeeded(attemptRow as AttemptRow)
+
+  if (syncedAttempt.status !== 'in_progress' || syncedAttempt.submittedAt) {
+    throw createError({
+      statusCode: 403,
+      message: 'This attempt is completed and no longer available',
+    })
+  }
+
   const testRows = await db
     .select()
     .from(tests)
@@ -961,19 +1004,7 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
     })
   }
 
-  if (syncedAttempt.submittedAt || syncedAttempt.status === 'expired') {
-    throw createError({
-      statusCode: 404,
-      message: 'Attempt not found',
-    })
-  }
-
-  if (await hasRevealedResultsForTest(syncedAttempt.testId)) {
-    throw createError({
-      statusCode: 404,
-      message: 'Attempt not found',
-    })
-  }
+  const testMeta = getTestMeta(testRow)
 
   const questionRows = await db
     .select()
@@ -981,16 +1012,15 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
     .where(eq(attemptQuestions.attemptId, attemptId))
     .orderBy(attemptQuestions.section, attemptQuestions.questionOrder)
 
-  const showSolutions = false
   const score = syncedAttempt.score ?? 0
-  const totalQuestions = syncedAttempt.totalQuestions ?? questionRows.reduce((sum, question) => sum + question.points, 0)
+  const totalQuestions = syncedAttempt.totalQuestions
+    ?? testMeta.testPoints
 
   return {
     attempt: {
       id: syncedAttempt.id,
       testId: syncedAttempt.testId,
       title: testRow.title,
-      description: testRow.description,
       status: syncedAttempt.status,
       attemptNumber: syncedAttempt.attemptNumber,
       startedAt: toIsoString(syncedAttempt.startedAt),
@@ -1001,7 +1031,7 @@ export async function getAttemptForStudent(attemptId: number, student: StudentSe
       percentage: totalQuestions ? Math.round((score / totalQuestions) * 100) : 0,
       canSubmit: syncedAttempt.status === 'in_progress' && !syncedAttempt.submittedAt,
     },
-    sections: buildSections(questionRows, showSolutions),
+    sections: buildSections(questionRows, false),
   }
 }
 
@@ -1030,18 +1060,40 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
     })
   }
 
+  const testRows = await db
+    .select()
+    .from(tests)
+    .where(eq(tests.id, syncedAttempt.testId))
+    .limit(1)
+
+  const [testRow] = testRows
+
+  if (!testRow) {
+    throw createError({
+      statusCode: 404,
+      message: 'Test not found',
+    })
+  }
+
+  const testMeta = getTestMeta(testRow)
+
   const questionRows = await db
     .select()
     .from(attemptQuestions)
     .where(eq(attemptQuestions.attemptId, attemptId))
     .orderBy(attemptQuestions.section, attemptQuestions.questionOrder)
 
-  let score = 0
-  let totalQuestions = 0
+  const scoringSettings = await getScoringSettings()
+  const sectionStats = new Map<string, { totalRatio: number; count: number }>()
+
+  for (const section of ['level1', 'level2', 'level3', 'level4', 'level5', 'level6', 'level7']) {
+    sectionStats.set(section, { totalRatio: 0, count: 0 })
+  }
 
   for (const question of questionRows) {
     const studentAnswers = getSectionAnswer(question, answers)
-    const earnedPoints = calculateEarnedPoints(question, studentAnswers)
+    const correctnessRatio = calculateCorrectnessRatio(question, studentAnswers)
+    const earnedPoints = Math.round(correctnessRatio * 100)
 
     await db
       .update(attemptQuestions)
@@ -1053,9 +1105,28 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
       })
       .where(eq(attemptQuestions.id, question.id))
 
-    score += earnedPoints
-    totalQuestions += question.points
+    const stat = sectionStats.get(question.section)
+    if (stat) {
+      stat.totalRatio += correctnessRatio
+      stat.count += 1
+    }
   }
+
+  let weightedPercentage = 0
+
+  for (const [section, stat] of sectionStats.entries()) {
+    if (stat.count === 0) {
+      continue
+    }
+
+    const sectionAverage = stat.totalRatio / stat.count
+    const sectionWeightPercent = pointsForSection(section, scoringSettings)
+    weightedPercentage += sectionAverage * sectionWeightPercent
+  }
+
+  const percentage = Math.round(weightedPercentage)
+  const totalQuestions = testMeta.testPoints
+  const score = Math.round((percentage / 100) * totalQuestions)
 
   await db
     .update(testAttempts)
@@ -1070,6 +1141,6 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
   return {
     score,
     totalQuestions,
-    percentage: totalQuestions ? Math.round((score / totalQuestions) * 100) : 0,
+    percentage,
   }
 }

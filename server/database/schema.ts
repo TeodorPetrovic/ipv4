@@ -1,5 +1,11 @@
 import { datetime, int, mysqlTable, text, varchar } from 'drizzle-orm/mysql-core'
 
+export const settings = mysqlTable('settings', {
+  key: varchar('key', { length: 255 }).primaryKey(),
+  value: text('value'),
+  updatedAt: datetime('updated_at'),
+})
+
 export const admins = mysqlTable('admin', {
   id: int('admin_id').primaryKey().autoincrement(),
   email: varchar('email', { length: 255 }).notNull(),
@@ -24,6 +30,9 @@ export const tests = mysqlTable('test', {
   durationMinutes: int('duration_minutes').notNull(),
   maxAttempts: int('max_attempts').notNull(),
   isPublished: int('is_published').notNull(),
+  testPoints: int('test_points').notNull().default(100),
+  unlimitedDuration: int('unlimited_duration').notNull().default(0),
+  unlimitedAttempts: int('unlimited_attempts').notNull().default(0),
   createdAt: datetime('created_at'),
   updatedAt: datetime('updated_at'),
 })

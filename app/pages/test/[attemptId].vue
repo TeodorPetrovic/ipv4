@@ -68,6 +68,12 @@ const submitError = ref('')
 const submitting = ref(false)
 const decimalOctetInput = ref('')
 const binaryOctetInput = ref('')
+const answersInitialized = ref(false)
+const nowTick = ref(Date.now())
+const lastSyncLocalMs = ref(Date.now())
+const lastSyncServerMs = ref<number | null>(null)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+let serverSyncTimer: ReturnType<typeof setInterval> | null = null
 
 const answers = reactive({
   level1: [] as string[],
@@ -96,6 +102,10 @@ function syncAnswers() {
     return
   }
 
+  if (answersInitialized.value && data.value.attempt.canSubmit) {
+    return
+  }
+
   answers.level1 = data.value.sections.level1.map(row => row.studentAnswer || '')
   answers.level2 = data.value.sections.level2.map(row => row.studentAnswer || '')
   answers.level3 = data.value.sections.level3.map(row => ({
@@ -110,11 +120,95 @@ function syncAnswers() {
     mask: row.studentMask || '',
     broadcast: row.studentBroadcast || '',
   }))
+
+  answersInitialized.value = true
 }
 
 watch(data, syncAnswers, { immediate: true })
 
 const showSolutions = computed(() => Boolean(data.value?.attempt.submittedAt || data.value?.attempt.status === 'expired'))
+
+const estimatedServerNowMs = computed(() => {
+  if (lastSyncServerMs.value === null) {
+    return nowTick.value
+  }
+
+  return lastSyncServerMs.value + (nowTick.value - lastSyncLocalMs.value)
+})
+
+const remainingTimeMs = computed(() => {
+  const deadlineRaw = data.value?.attempt.deadlineAt
+
+  if (!deadlineRaw || !data.value?.attempt.canSubmit) {
+    return 0
+  }
+
+  const deadlineMs = new Date(deadlineRaw).getTime()
+  return Math.max(0, deadlineMs - estimatedServerNowMs.value)
+})
+
+const remainingTimeLabel = computed(() => {
+  const totalSeconds = Math.floor(remainingTimeMs.value / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  const hh = String(hours).padStart(2, '0')
+  const mm = String(minutes).padStart(2, '0')
+  const ss = String(seconds).padStart(2, '0')
+
+  return `${hh}:${mm}:${ss}`
+})
+
+const remainingTimeColor = computed(() => {
+  if (remainingTimeMs.value <= 60_000) {
+    return 'text-red-600'
+  }
+
+  if (remainingTimeMs.value <= 5 * 60_000) {
+    return 'text-amber-600'
+  }
+
+  return 'text-emerald-600'
+})
+
+async function syncWithServer() {
+  try {
+    const [timeResponse] = await Promise.all([
+      $fetch<{ now: string }>('/api/time'),
+      refresh(),
+    ])
+
+    const serverNowMs = new Date(timeResponse.now).getTime()
+    if (!Number.isNaN(serverNowMs)) {
+      lastSyncServerMs.value = serverNowMs
+      lastSyncLocalMs.value = Date.now()
+    }
+  } catch {
+    // Keep the last known server time when sync fails.
+  }
+}
+
+onMounted(() => {
+  countdownTimer = setInterval(() => {
+    nowTick.value = Date.now()
+  }, 1000)
+
+  void syncWithServer()
+  serverSyncTimer = setInterval(() => {
+    void syncWithServer()
+  }, 15000)
+})
+
+onBeforeUnmount(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+  }
+
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer)
+  }
+})
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -248,9 +342,19 @@ async function submitAnswers() {
           <UCard>
             <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div class="space-y-3">
-                <div>
-                  <h1 class="text-3xl font-semibold text-slate-950">{{ data.attempt.title }}</h1>
+                <div class="h-full">
+                  <h1 class="text-3xl my-auto font-semibold text-slate-950 pt-2">{{ data.attempt.title }}</h1>
                 </div>
+              </div>
+
+              <div v-if="data.attempt.canSubmit" class="px-4 py-3 lg:min-w-56">
+                <p class="text font-bold uppercase tracking-wide">Преостало време</p>
+                <ClientOnly>
+                  <p class="mt-1 font-mono text-3xl font-bold" :class="remainingTimeColor">{{ remainingTimeLabel }}</p>
+                  <template #fallback>
+                    <p class="mt-1 font-mono text-3xl font-bold text-slate-400">--:--:--</p>
+                  </template>
+                </ClientOnly>
               </div>
             </div>
           </UCard>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const email = ref('tpetrovic@singimail.rs')
-const password = ref('123')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
@@ -51,7 +51,6 @@ async function login() {
             v-model="email"
             type="email"
             class="w-full"
-            placeholder="tpetrovic@singimail.rs"
             @keyup.enter="login"
           />
         </UFormField>

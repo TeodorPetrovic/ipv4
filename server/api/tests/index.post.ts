@@ -13,6 +13,9 @@ export default withSafeApi(async (event) => {
     durationMinutes?: number
     maxAttempts?: number
     isPublished?: boolean | number
+    testPoints?: number
+    unlimitedDuration?: boolean
+    unlimitedAttempts?: boolean
   }>(event)
 
   return createTest({
@@ -23,5 +26,8 @@ export default withSafeApi(async (event) => {
     durationMinutes: body.durationMinutes ?? 60,
     maxAttempts: body.maxAttempts ?? 1,
     isPublished: body.isPublished,
+    testPoints: body.testPoints,
+    unlimitedDuration: body.unlimitedDuration,
+    unlimitedAttempts: body.unlimitedAttempts,
   })
 })

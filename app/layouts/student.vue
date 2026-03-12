@@ -34,12 +34,10 @@ const profileItems = computed(() => [[
 
         <div class="ml-auto">
           <UDropdownMenu :items="profileItems">
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="i-lucide-user-round"
-              :label="authState?.student?.name || 'Student'"
-              aria-label="Profile"
+            <UUser
+              :name="authState?.student?.name || 'Student'"
+              :avatar="{ alt: authState?.student?.name || 'Student' }"
+              class="cursor-pointer rounded-md px-2 py-1.5 hover:bg-elevated"
             />
           </UDropdownMenu>
         </div>

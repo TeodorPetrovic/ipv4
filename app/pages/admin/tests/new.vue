@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CalendarDate, Time } from '@internationalized/date'
+import type { AuthState } from '#shared/types/api'
 
 definePageMeta({
   layout: 'admin',
@@ -8,7 +9,7 @@ definePageMeta({
 
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
-const { data: authState } = await useFetch('/api/auth/session', {
+const { data: authState } = await useFetch<AuthState>('/api/auth/session', {
   headers: requestHeaders,
 })
 
@@ -24,8 +25,10 @@ const startTime = shallowRef(new Time(now.getHours(), now.getMinutes()))
 const endDate = shallowRef(new CalendarDate(now.getFullYear(), now.getMonth() + 1, now.getDate()))
 const endTime = shallowRef(new Time(now.getHours() + 1, now.getMinutes()))
 const durationMinutes = ref(60)
+const testPoints = ref(100)
 const maxAttempts = ref(1)
-const isPublished = ref(true)
+const unlimitedDuration = ref(false)
+const unlimitedAttempts = ref(false)
 
 const loading = ref(false)
 const error = ref('')
@@ -54,8 +57,10 @@ async function save() {
         startAt: toApiDatetime(startDate.value, startTime.value),
         endAt: toApiDatetime(endDate.value, endTime.value),
         durationMinutes: durationMinutes.value,
+        testPoints: testPoints.value,
         maxAttempts: maxAttempts.value,
-        isPublished: isPublished.value,
+        unlimitedDuration: unlimitedDuration.value,
+        unlimitedAttempts: unlimitedAttempts.value,
       },
     })
 
@@ -69,10 +74,17 @@ async function save() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-xl">
+  <div class="mx-auto max-w-3xl space-y-3">
+    <UButton color="neutral" variant="ghost" icon="i-lucide-arrow-left" to="/admin/tests">
+      Back to tests
+    </UButton>
+
     <UCard>
       <template #header>
-        <h1 class="text-lg font-semibold">Create new test</h1>
+        <div class="space-y-1">
+          <h1 class="text-lg font-semibold">Create new test</h1>
+          <p class="text-sm text-muted">Configure test title, schedule, attempts, and scoring points.</p>
+        </div>
       </template>
 
       <div class="space-y-4">
@@ -128,19 +140,30 @@ async function save() {
           </UFormField>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-1">
+          <UFormField label="Test points" required>
+            <UInputNumber v-model="testPoints" :min="1" class="w-full" />
+          </UFormField>
+
           <UFormField label="Duration (minutes)" required>
-            <UInput v-model="durationMinutes" type="number" min="1" class="w-full" />
+            <UInputNumber v-model="durationMinutes" :min="1" :disabled="unlimitedDuration" class="w-full" />
           </UFormField>
 
           <UFormField label="Max attempts" required>
-            <UInput v-model="maxAttempts" type="number" min="1" class="w-full" />
+            <UInputNumber v-model="maxAttempts" :min="1" :disabled="unlimitedAttempts" class="w-full" />
           </UFormField>
         </div>
 
-        <div class="flex items-center justify-between gap-4 rounded-lg border border-default p-3">
-          <span class="text-sm font-medium">Visible to students</span>
-          <USwitch v-model="isPublished" />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="flex items-center justify-between gap-4 rounded-lg border border-default p-3">
+            <span class="text-sm font-medium">Unlimited duration</span>
+            <USwitch v-model="unlimitedDuration" />
+          </div>
+
+          <div class="flex items-center justify-between gap-4 rounded-lg border border-default p-3">
+            <span class="text-sm font-medium">Unlimited attempts</span>
+            <USwitch v-model="unlimitedAttempts" />
+          </div>
         </div>
 
         <UAlert

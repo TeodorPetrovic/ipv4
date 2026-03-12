@@ -25,6 +25,12 @@ const navigationItems = computed(() => [
     to: '/admin/students',
     active: route.path.startsWith('/admin/students'),
   },
+  {
+    label: 'Settings',
+    icon: 'i-lucide-settings',
+    to: '/admin/settings',
+    active: route.path.startsWith('/admin/settings'),
+  },
 ])
 
 const pageTitle = computed(() => {
@@ -90,20 +96,20 @@ async function logout() {
       <template #footer="{ collapsed }">
         <div class="w-full">
           <UDropdownMenu :items="profileMenuItems" :content="{ side: 'top', align: 'start' }">
+            <UUser
+              v-if="!collapsed"
+              name="Administrator"
+              description="Admin Panel"
+              :avatar="{ alt: 'Administrator' }"
+              class="w-full cursor-pointer rounded-md px-2 py-1.5 hover:bg-elevated"
+            />
             <UButton
-              block
+              v-else
               color="neutral"
               variant="ghost"
-              class="justify-start"
-              :label="collapsed ? undefined : 'Administrator'"
               icon="i-lucide-user-round"
-              :trailing-icon="collapsed ? undefined : 'i-lucide-chevrons-up-down'"
-              :square="collapsed"
-            >
-              <template #leading>
-                <UAvatar icon="i-lucide-user-round" size="sm" />
-              </template>
-            </UButton>
+              square
+            />
           </UDropdownMenu>
         </div>
       </template>
