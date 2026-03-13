@@ -1,3 +1,38 @@
+// Precomputed lookup tables for all 33 valid CIDR prefix lengths (0-32).
+// Avoids repeated string/math operations in hot paths.
+const _cidrToMaskStr: string[] = Array.from({ length: 33 }, (_, cidr) => {
+  const mask = []
+  for (let i = 0; i < 4; i++) {
+    const bits = Math.min(8, Math.max(0, cidr - i * 8))
+    mask.push(256 - (1 << (8 - bits)))
+  }
+  return mask.join('.')
+})
+
+const _cidrToMaskInt: number[] = Array.from({ length: 33 }, (_, cidr) => {
+  if (cidr === 0) return 0
+  if (cidr >= 32) return 0xFFFFFFFF
+  return (0xFFFFFFFF << (32 - cidr)) >>> 0
+})
+
+const _maskStrToCidr = new Map<string, number>(
+  _cidrToMaskStr.map((mask, cidr) => [mask, cidr]),
+)
+
+function _ipToInt(ip: string): number {
+  const parts = ip.split('.')
+  return (
+    ((parseInt(parts[0] ?? '0', 10) << 24) |
+    (parseInt(parts[1] ?? '0', 10) << 16) |
+    (parseInt(parts[2] ?? '0', 10) << 8) |
+    parseInt(parts[3] ?? '0', 10)) >>> 0
+  )
+}
+
+function _intToIp(n: number): string {
+  return `${(n >>> 24) & 255}.${(n >>> 16) & 255}.${(n >>> 8) & 255}.${n & 255}`
+}
+
 export function decimalToBinary(decimal: number): string {
   return decimal.toString(2).padStart(8, '0')
 }
@@ -25,37 +60,29 @@ export function getIpClass(ip: string): string {
 }
 
 export function cidrToSubnetMask(cidr: number): string {
-  const mask = []
-  for (let i = 0; i < 4; i++) {
-    const bits = Math.min(8, Math.max(0, cidr - i * 8))
-    mask.push(256 - Math.pow(2, 8 - bits))
-  }
-  return mask.join('.')
+  return _cidrToMaskStr[cidr] ?? _cidrToMaskStr[24]!
 }
 
 export function subnetMaskToCidr(mask: string): number {
+  const cached = _maskStrToCidr.get(mask)
+  if (cached !== undefined) return cached
   return mask.split('.').map(Number).reduce((cidr, octet) => {
     return cidr + octet.toString(2).split('1').length - 1
   }, 0)
 }
 
 export function getNetworkAddress(ip: string, cidr: number): string {
-  const ipOctets = ip.split('.').map(Number)
-  const maskOctets = cidrToSubnetMask(cidr).split('.').map(Number)
-  return ipOctets.map((o, i) => o & (maskOctets[i] ?? 0)).join('.')
+  const maskInt = _cidrToMaskInt[cidr] ?? 0
+  return _intToIp((_ipToInt(ip) & maskInt) >>> 0)
 }
 
 export function getBroadcastAddress(ip: string, cidr: number): string {
-  const ipOctets = ip.split('.').map(Number)
-  const maskOctets = cidrToSubnetMask(cidr).split('.').map(Number)
-  return ipOctets.map((o, i) => {
-    const mask = maskOctets[i] ?? 0
-    return (o & mask) | (~mask & 255)
-  }).join('.')
+  const maskInt = _cidrToMaskInt[cidr] ?? 0
+  return _intToIp(((_ipToInt(ip) & maskInt) | (~maskInt & 0xFFFFFFFF)) >>> 0)
 }
 
 export function getHostCount(cidr: number): number {
-  return Math.pow(2, 32 - cidr) - 2
+  return (1 << (32 - cidr)) - 2
 }
 
 export function getHostCountFromMask(mask: string): number {
@@ -63,8 +90,11 @@ export function getHostCountFromMask(mask: string): number {
 }
 
 export function sameNetwork(ip1: string, ip2: string, mask: string): boolean {
-  const cidr = subnetMaskToCidr(mask)
-  return getNetworkAddress(ip1, cidr) === getNetworkAddress(ip2, cidr)
+  const cidr = _maskStrToCidr.get(mask) ?? subnetMaskToCidr(mask)
+  const maskInt = _cidrToMaskInt[cidr] ?? 0
+  const ip1Int = _ipToInt(ip1)
+  const ip2Int = _ipToInt(ip2)
+  return (ip1Int & maskInt) === (ip2Int & maskInt)
 }
 
 export function isValidIp(ip: string): boolean {
