@@ -2,15 +2,26 @@ import type { i18n } from 'i18next'
 import { readonly, ref } from 'vue'
 import srCyrl from '~/locales/sr-Cyrl'
 
-type Locale = 'sr-Cyrl' | 'sr-Latn' | 'en'
+export type AppLocale = 'sr-Cyrl' | 'sr-Latn' | 'en'
+const VALID_LOCALES: AppLocale[] = ['sr-Cyrl', 'sr-Latn', 'en']
 
 // Module-level shared state (safe: server renders once per request, client has one instance)
 let _instance: i18n | null = null
-const _locale = ref<Locale>('sr-Cyrl')
+const _locale = ref<AppLocale>('sr-Cyrl')
 
-export function _setI18nInstance(instance: i18n, locale: Locale) {
+function isAppLocale(locale: string): locale is AppLocale {
+  return VALID_LOCALES.includes(locale as AppLocale)
+}
+
+export function _setI18nInstance(instance: i18n, locale: AppLocale) {
   _instance = instance
   _locale.value = locale
+
+  instance.on('languageChanged', (nextLocale) => {
+    if (isAppLocale(nextLocale)) {
+      _locale.value = nextLocale
+    }
+  })
 }
 
 function getNestedValue(obj: Record<string, unknown>, keys: string[]): string | undefined {
@@ -24,8 +35,11 @@ function getNestedValue(obj: Record<string, unknown>, keys: string[]): string | 
 
 export function useAppI18n() {
   function t(key: string, vars?: Record<string, unknown>): string {
+    // Read locale here so Vue tracks it during render and updates immediately on language changes.
+    const activeLocale = _locale.value
+
     if (_instance) {
-      return _instance.t(key, vars as Parameters<i18n['t']>[1]) as string
+      return _instance.t(key as any, { lng: activeLocale, ...(vars ?? {}) } as any) as string
     }
     // SSR fallback: use sr-Cyrl translations directly to avoid hydration mismatches
     const keys = key.split('.')
@@ -40,14 +54,16 @@ export function useAppI18n() {
     return key
   }
 
-  async function changeLocale(locale: Locale) {
+  async function changeLocale(locale: AppLocale) {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('app-locale', locale)
+    }
+
     if (_instance) {
       await _instance.changeLanguage(locale)
-      _locale.value = locale
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('app-locale', locale)
-      }
     }
+
+    _locale.value = locale
   }
 
   return {

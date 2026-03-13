@@ -2,6 +2,8 @@ const srCyrl = {
   layout: {
     logout: 'Одјава',
     languageSwitcher: 'Промени језик',
+    toggleTheme: 'Промени тему',
+    student: 'Студент',
   },
   ipConverter: {
     title: 'IP конвертор',
@@ -15,8 +17,44 @@ const srCyrl = {
   common: {
     yes: 'Да',
     no: 'Не',
+    cancel: 'Откажи',
+    continue: 'Настави',
+    refresh: 'Освежи',
     backToTests: 'Назад на листу тестова',
     submitAnswers: 'Предај одговоре',
+  },
+  login: {
+    studentTitle: 'Пријава студента',
+    studentDescription: 'Унесите број индекса да бисте видели доступне тестове.',
+    studentIdLabel: 'Број индекса',
+    studentIdPlaceholder: '2024123456',
+    adminTitle: 'Админ пријава',
+    adminDescription: 'Унесите имејл и лозинку за управљање тестовима, студентима и резултатима.',
+    emailLabel: 'Имејл',
+    passwordLabel: 'Лозинка',
+    passwordPlaceholder: 'Унесите лозинку',
+    errors: {
+      studentIdRequired: 'Број индекса је обавезан',
+      studentLoginFailed: 'Пријава није успела',
+      adminLoginFailed: 'Админ пријава није успела',
+    },
+  },
+  tests: {
+    searchPlaceholder: 'Претражи тестове',
+    empty: 'Нема доступних тестова.',
+    start: 'Почни',
+    table: {
+      test: 'Тест',
+      action: 'Акција',
+    },
+    confirm: {
+      title: 'Почни тест',
+      description: 'Да ли желите да покренете овај тест сада?',
+    },
+    errors: {
+      loadFailed: 'Није могуће учитати тестове',
+      openFailed: 'Није могуће отворити овај тест',
+    },
   },
   test: {
     errors: {
@@ -98,7 +136,7 @@ const srCyrl = {
       broadcastAddress: 'Емисиона адреса',
     },
   },
-} as const
+}
 
 export default srCyrl
 export type TranslationShape = typeof srCyrl

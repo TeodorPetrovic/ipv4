@@ -14,6 +14,7 @@ export default defineNuxtConfig({
         '@vue/devtools-core',
         '@vue/devtools-kit',
         '@internationalized/date',
+        'i18next',
       ]
     }
   },

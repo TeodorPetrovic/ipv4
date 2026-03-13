@@ -4,6 +4,8 @@ const en: TranslationShape = {
   layout: {
     logout: 'Logout',
     languageSwitcher: 'Change language',
+    toggleTheme: 'Toggle theme',
+    student: 'Student',
   },
   ipConverter: {
     title: 'IP Converter',
@@ -17,8 +19,44 @@ const en: TranslationShape = {
   common: {
     yes: 'Yes',
     no: 'No',
+    cancel: 'Cancel',
+    continue: 'Continue',
+    refresh: 'Refresh',
     backToTests: 'Back to test list',
     submitAnswers: 'Submit answers',
+  },
+  login: {
+    studentTitle: 'Student Login',
+    studentDescription: 'Enter your student ID to view available tests.',
+    studentIdLabel: 'Student ID',
+    studentIdPlaceholder: '2024123456',
+    adminTitle: 'Admin Login',
+    adminDescription: 'Enter your email and password to manage tests, students, and results.',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Enter password',
+    errors: {
+      studentIdRequired: 'Student ID is required',
+      studentLoginFailed: 'Login failed',
+      adminLoginFailed: 'Admin login failed',
+    },
+  },
+  tests: {
+    searchPlaceholder: 'Search tests',
+    empty: 'No tests available.',
+    start: 'Start',
+    table: {
+      test: 'Test',
+      action: 'Action',
+    },
+    confirm: {
+      title: 'Start test',
+      description: 'Do you want to start this test now?',
+    },
+    errors: {
+      loadFailed: 'Unable to load tests',
+      openFailed: 'Unable to open this test',
+    },
   },
   test: {
     errors: {

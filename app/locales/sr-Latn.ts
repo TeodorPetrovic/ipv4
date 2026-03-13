@@ -4,6 +4,8 @@ const srLatn: TranslationShape = {
   layout: {
     logout: 'Odjava',
     languageSwitcher: 'Promeni jezik',
+    toggleTheme: 'Promeni temu',
+    student: 'Student',
   },
   ipConverter: {
     title: 'IP konvertor',
@@ -17,8 +19,44 @@ const srLatn: TranslationShape = {
   common: {
     yes: 'Da',
     no: 'Ne',
+    cancel: 'Otkaži',
+    continue: 'Nastavi',
+    refresh: 'Osveži',
     backToTests: 'Nazad na listu testova',
     submitAnswers: 'Predaj odgovore',
+  },
+  login: {
+    studentTitle: 'Prijava studenta',
+    studentDescription: 'Unesite broj indeksa da biste videli dostupne testove.',
+    studentIdLabel: 'Broj indeksa',
+    studentIdPlaceholder: '2024123456',
+    adminTitle: 'Admin prijava',
+    adminDescription: 'Unesite imejl i lozinku za upravljanje testovima, studentima i rezultatima.',
+    emailLabel: 'Imejl',
+    passwordLabel: 'Lozinka',
+    passwordPlaceholder: 'Unesite lozinku',
+    errors: {
+      studentIdRequired: 'Broj indeksa je obavezan',
+      studentLoginFailed: 'Prijava nije uspela',
+      adminLoginFailed: 'Admin prijava nije uspela',
+    },
+  },
+  tests: {
+    searchPlaceholder: 'Pretraži testove',
+    empty: 'Nema dostupnih testova.',
+    start: 'Počni',
+    table: {
+      test: 'Test',
+      action: 'Akcija',
+    },
+    confirm: {
+      title: 'Počni test',
+      description: 'Da li želite da pokrenete ovaj test sada?',
+    },
+    errors: {
+      loadFailed: 'Nije moguće učitati testove',
+      openFailed: 'Nije moguće otvoriti ovaj test',
+    },
   },
   test: {
     errors: {
