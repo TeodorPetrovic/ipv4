@@ -46,39 +46,47 @@ async function login() {
     </div>
 
     <UContainer class="flex min-h-screen max-w-md items-center justify-center">
-      <UCard class="w-full">
-        <template #header>
-          <div class="space-y-1">
-            <h1 class="text-xl font-semibold">{{ t('login.studentTitle') }}</h1>
-            <p class="text-sm text-muted">{{ t('login.studentDescription') }}</p>
-          </div>
-        </template>
+      <div class="w-full space-y-4">
+        <img
+          src="/logo.svg"
+          alt="Singidunum"
+          class="mx-auto h-16 w-auto"
+        >
 
-        <div class="space-y-4">
-          <UFormField :label="t('login.studentIdLabel')" required>
-            <UInput
-              v-model="studentId"
-              class="w-full"
-              :placeholder="t('login.studentIdPlaceholder')"
-              icon="i-lucide-id-card"
-              @keyup.enter="login"
+        <UCard variant="subtle" class="w-full">
+          <template #header>
+            <div class="space-y-1">
+              <h1 class="text-xl text-center font-semibold">{{ t('login.studentTitle') }}</h1>
+              <p class="text-sm text-center text-muted">{{ t('login.studentDescription') }}</p>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <UFormField :label="t('login.studentIdLabel')" required>
+              <UInput
+                v-model="studentId"
+                class="w-full"
+                :placeholder="t('login.studentIdPlaceholder')"
+                icon="i-lucide-id-card"
+                @keyup.enter="login"
+              />
+            </UFormField>
+
+            <UAlert
+              v-if="error"
+              color="error"
+              variant="soft"
+              :title="error"
             />
-          </UFormField>
+          </div>
 
-          <UAlert
-            v-if="error"
-            color="error"
-            variant="soft"
-            :title="error"
-          />
-        </div>
-
-        <template #footer>
-          <UButton block :loading="loading" @click="login">
-            {{ t('common.continue') }}
-          </UButton>
-        </template>
-      </UCard>
+          <template #footer>
+            <UButton block :loading="loading" @click="login">
+              {{ t('common.continue') }}
+            </UButton>
+          </template>
+        </UCard>
+      </div>
     </UContainer>
   </div>
 </template>

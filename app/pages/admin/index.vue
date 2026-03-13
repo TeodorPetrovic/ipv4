@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const email = ref('tpetrovic@singimail.rs')
+const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
