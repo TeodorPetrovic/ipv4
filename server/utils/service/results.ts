@@ -1,4 +1,4 @@
-import { desc, eq, isNotNull } from 'drizzle-orm'
+import { desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { createError } from 'h3'
 
 import { db } from '#server/database'
@@ -12,18 +12,36 @@ async function buildAttemptResults(
     testRows?: Array<typeof tests.$inferSelect>
   },
 ) {
+  if (attemptRows.length === 0) {
+    return []
+  }
+
   const studentRows = options?.studentRows ?? await db.select().from(students)
   const testRows = options?.testRows ?? await db.select().from(tests)
+
+  // Fetch all question rows for all attempts in a single query instead of N queries.
+  const attemptIds = attemptRows.map(r => r.id)
+  const allQuestionRows = await db
+    .select()
+    .from(attemptQuestions)
+    .where(inArray(attemptQuestions.attemptId, attemptIds))
+    .orderBy(attemptQuestions.section, attemptQuestions.questionOrder)
+
+  // Group question rows by attemptId for O(1) per-attempt lookup.
+  const questionsByAttemptId = new Map<number, Array<typeof attemptQuestions.$inferSelect>>()
+  for (const row of allQuestionRows) {
+    const list = questionsByAttemptId.get(row.attemptId)
+    if (list) {
+      list.push(row)
+    } else {
+      questionsByAttemptId.set(row.attemptId, [row])
+    }
+  }
 
   const results = []
 
   for (const attemptRow of attemptRows) {
-    const questionRows = await db
-      .select()
-      .from(attemptQuestions)
-      .where(eq(attemptQuestions.attemptId, attemptRow.id))
-      .orderBy(attemptQuestions.section, attemptQuestions.questionOrder)
-
+    const questionRows = questionsByAttemptId.get(attemptRow.id) ?? []
     const studentRow = studentRows.find(row => row.id === attemptRow.studentId)
     const testRow = testRows.find(row => row.id === attemptRow.testId)
     const score = attemptRow.score
@@ -87,4 +105,14 @@ export async function getResultByAttemptId(attemptId: number) {
   }
 
   return result
+}
+
+export async function getResultsByStudentId(studentDbId: number) {
+  const attemptRows = await db
+    .select()
+    .from(testAttempts)
+    .where(eq(testAttempts.studentId, studentDbId))
+    .orderBy(desc(testAttempts.submittedAt), desc(testAttempts.id))
+
+  return buildAttemptResults(attemptRows)
 }

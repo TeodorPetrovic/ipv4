@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { createError } from 'h3'
 
 import { db } from '#server/database'
@@ -276,8 +276,12 @@ function generateLevel5Questions(): QuestionSeed[] {
     return `${192}.168.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`
   }
 
+  // At most ~15% of the class A–C range is private/reserved, so a public IP
+  // is found on average within 2 tries. 200 attempts is a very safe upper bound.
+  const MAX_PUBLIC_IP_ATTEMPTS = 200
+
   const publicIp = () => {
-    while (true) {
+    for (let i = 0; i < MAX_PUBLIC_IP_ATTEMPTS; i++) {
       const ip = generateRandomIp()
       const [first = 0, second = 0] = ip.split('.').map(Number)
       const isPrivate = first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168)
@@ -286,6 +290,7 @@ function generateLevel5Questions(): QuestionSeed[] {
         return ip
       }
     }
+    return '8.8.8.8'
   }
 
   const isUsablePublicHost = (cidrIp: string) => {
@@ -1131,26 +1136,40 @@ export async function submitAttemptForStudent(attemptId: number, student: Studen
     sectionStats.set(section, { totalRatio: 0, count: 0 })
   }
 
+  // Compute all scores in memory first, then batch-update in a single SQL statement.
+  const questionUpdates: Array<typeof attemptQuestions.$inferInsert> = []
+
   for (const question of questionRows) {
     const studentAnswers = getSectionAnswer(question, answers)
     const correctnessRatio = calculateCorrectnessRatio(question, studentAnswers)
     const earnedPoints = Math.round(correctnessRatio * 100)
 
-    await db
-      .update(attemptQuestions)
-      .set({
-        studentAnswer1: studentAnswers.answer1,
-        studentAnswer2: studentAnswers.answer2,
-        studentAnswer3: studentAnswers.answer3,
-        earnedPoints,
-      })
-      .where(eq(attemptQuestions.id, question.id))
+    questionUpdates.push({
+      ...question,
+      studentAnswer1: studentAnswers.answer1,
+      studentAnswer2: studentAnswers.answer2,
+      studentAnswer3: studentAnswers.answer3,
+      earnedPoints,
+    })
 
     const stat = sectionStats.get(question.section)
     if (stat) {
       stat.totalRatio += correctnessRatio
       stat.count += 1
     }
+  }
+
+  if (questionUpdates.length > 0) {
+    await db.insert(attemptQuestions)
+      .values(questionUpdates)
+      .onDuplicateKeyUpdate({
+        set: {
+          studentAnswer1: sql`VALUES(student_answer_1)`,
+          studentAnswer2: sql`VALUES(student_answer_2)`,
+          studentAnswer3: sql`VALUES(student_answer_3)`,
+          earnedPoints: sql`VALUES(earned_points)`,
+        },
+      })
   }
 
   let weightedPercentage = 0
