@@ -40,20 +40,21 @@ function cidrToSubnetMask(cidr) {
     const mask = [];
     for (let i = 0; i < 4; i++) {
         const bits = Math.min(8, Math.max(0, cidr - i * 8));
-        mask.push(256 - Math.pow(2, 8 - bits));
+        mask.push(256 - (1 << (8 - bits)));
     }
     return mask.join('.');
 }
 
 // Convert subnet mask to CIDR
 function subnetMaskToCidr(mask) {
-    const octets = mask.split('.').map(Number);
     let cidr = 0;
-    
-    for (let octet of octets) {
-        cidr += octet.toString(2).split('1').length - 1;
+    for (const octet of mask.split('.')) {
+        let n = parseInt(octet, 10);
+        while (n) {
+            cidr += n & 1;
+            n >>>= 1;
+        }
     }
-    
     return cidr;
 }
 
@@ -82,7 +83,7 @@ function getBroadcastAddress(ip, cidr) {
 // Calculate number of hosts
 function getHostCount(cidr) {
     const hostBits = 32 - cidr;
-    return Math.pow(2, hostBits) - 2;
+    return (1 << hostBits) - 2;
 }
 
 // Calculate number of hosts from subnet mask

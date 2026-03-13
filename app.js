@@ -18,9 +18,21 @@ let userAnswers = {
     level6: []
 };
 
+// Map from "levelId-taskIndex" → <tr> element for O(1) feedback insertion
+const taskRowMap = {};
+
+// Shared base CSS classes used across grading loops
+const INPUT_BASE = 'w-full px-2 py-1 border rounded text-gray-900 text-sm focus:outline-none';
+const SELECT_BASE = 'w-full px-2 py-1 bg-white border rounded text-gray-900 text-sm focus:outline-none';
+const CLASS_CORRECT = ' border-green-500 bg-green-100';
+const CLASS_WRONG   = ' border-red-500 bg-red-100';
+
 // Initialize the application
 function init() {
+    const t0 = performance.now();
     generateAllTasks();
+    const t1 = performance.now();
+    console.log(`[perf] Test generation: ${(t1 - t0).toFixed(2)} ms`);
     setupEventListeners();
 }
 
@@ -61,6 +73,7 @@ function generateAllTasks() {
 function generateLevel1Tasks() {
     const tbody = document.getElementById('level1-tbody');
     tbody.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     
     for (let i = 0; i < 1; i++) {
         const ip = generateRandomIp();
@@ -77,14 +90,17 @@ function generateLevel1Tasks() {
             <td class="py-2 px-3 text-gray-700 binary-text">${binaryIp}</td>
             <td class="py-2 px-3"><input type="text" id="level1-${i}" placeholder="xxx.xxx.xxx.xxx" class="w-full px-2 py-1 bg-white border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-gray-500" /></td>
         `;
-        tbody.appendChild(row);
+        taskRowMap[`level1-${i}`] = row;
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
 }
 
 // Level 2: IP Class identification
 function generateLevel2Tasks() {
     const tbody = document.getElementById('level2-tbody');
     tbody.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     
     const classes = ['A', 'B', 'C'];
     
@@ -112,14 +128,17 @@ function generateLevel2Tasks() {
                 </select>
             </td>
         `;
-        tbody.appendChild(row);
+        taskRowMap[`level2-${i}`] = row;
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
 }
 
 // Level 3: Network and Broadcast address
 function generateLevel3Tasks() {
     const tbody = document.getElementById('level3-tbody');
     tbody.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     
     for (let i = 0; i < 5; i++) {
         const ip = generateRandomIp();
@@ -141,8 +160,10 @@ function generateLevel3Tasks() {
             <td class="py-2 px-3"><input type="text" id="level3-network-${i}" placeholder="xxx.xxx.xxx.xxx" class="w-full px-2 py-1 bg-white border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-gray-500" /></td>
             <td class="py-2 px-3"><input type="text" id="level3-broadcast-${i}" placeholder="xxx.xxx.xxx.xxx" class="w-full px-2 py-1 bg-white border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-gray-500" /></td>
         `;
-        tbody.appendChild(row);
+        taskRowMap[`level3-${i}`] = row;
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
 }
 
 // Level 4: Network capacity
@@ -150,6 +171,7 @@ function generateLevel4Tasks() {
     const tbody = document.getElementById('level4-tbody');
     tbody.innerHTML = '';
     currentTasks.level4 = [];
+    const fragment = document.createDocumentFragment();
     
     for (let i = 0; i < 5; i++) {
         // Generate random CIDR from /20 to /30
@@ -168,8 +190,10 @@ function generateLevel4Tasks() {
             <td class="py-2 px-3 text-gray-700 font-mono">${mask}</td>
             <td class="py-2 px-3"><input type="text" id="level4-${i}" placeholder="Number of hosts" class="w-full px-2 py-1 bg-white border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-gray-500" /></td>
         `;
-        tbody.appendChild(row);
+        taskRowMap[`level4-${i}`] = row;
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
 }
 
 // Level 5: Same network check (moved from Level 6)
@@ -177,6 +201,7 @@ function generateLevel5Tasks() {
     const tbody = document.getElementById('level5-tbody');
     tbody.innerHTML = '';
     currentTasks.level5 = [];
+    const fragment = document.createDocumentFragment();
     
     for (let i = 0; i < 5; i++) {
         const ip1 = generateRandomIp();
@@ -204,8 +229,10 @@ function generateLevel5Tasks() {
                 </select>
             </td>
         `;
-        tbody.appendChild(row);
+        taskRowMap[`level5-${i}`] = row;
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
 }
 
 // Level 6: Advanced Subnetting (moved from Level 7, modified for /23 or /24)
@@ -293,6 +320,7 @@ function generateLevel6Tasks() {
     };
     
     // Generate table rows
+    const fragment = document.createDocumentFragment();
     for (let i = 0; i < hostRequirements.length; i++) {
         const row = document.createElement('tr');
         row.className = 'border-b border-gray-200';
@@ -303,38 +331,37 @@ function generateLevel6Tasks() {
             <td class="py-2 px-3"><input type="text" id="level6-mask-${i}" placeholder="xxx.xxx.xxx.xxx" class="w-full px-2 py-1 bg-white border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-gray-500" /></td>
             <td class="py-2 px-3"><input type="text" id="level6-broadcast-${i}" placeholder="xxx.xxx.xxx.xxx" class="w-full px-2 py-1 bg-white border border-gray-300 rounded text-gray-900 text-sm focus:outline-none focus:border-gray-500" /></td>
         `;
-        tbody.appendChild(row);
+        taskRowMap[`level6-${i}`] = row;
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
 }
 
 
 // Submit and grade answers
 function submitAnswers() {
     // Remove all previous feedback rows
-    const feedbackRows = document.querySelectorAll('.feedback-row');
-    feedbackRows.forEach(row => row.remove());
-    
+    document.querySelectorAll('.feedback-row').forEach(row => row.remove());
+
+    const t0 = performance.now();
     collectAnswers();
     gradeAnswers();
+    const t1 = performance.now();
+    console.log(`[perf] Answer grading: ${(t1 - t0).toFixed(2)} ms`);
+
     displayResults();
 }
 
 // Collect user answers
 function collectAnswers() {
-    // Level 1
-    userAnswers.level1 = [];
-    for (let i = 0; i < currentTasks.level1.length; i++) {
-        const value = document.getElementById(`level1-${i}`).value;
-        userAnswers.level1.push(normalizeIp(value));
-    }
-    
+    // Level 1 – read all inputs in one querySelectorAll pass
+    const l1Inputs = document.querySelectorAll('input[id^="level1-"]');
+    userAnswers.level1 = Array.from(l1Inputs, el => normalizeIp(el.value));
+
     // Level 2
-    userAnswers.level2 = [];
-    for (let i = 0; i < currentTasks.level2.length; i++) {
-        const value = document.getElementById(`level2-${i}`).value;
-        userAnswers.level2.push(value);
-    }
-    
+    const l2Selects = document.querySelectorAll('select[id^="level2-"]');
+    userAnswers.level2 = Array.from(l2Selects, el => el.value);
+
     // Level 3
     userAnswers.level3 = [];
     for (let i = 0; i < currentTasks.level3.length; i++) {
@@ -343,21 +370,15 @@ function collectAnswers() {
             broadcast: normalizeIp(document.getElementById(`level3-broadcast-${i}`).value)
         });
     }
-    
+
     // Level 4
-    userAnswers.level4 = [];
-    for (let i = 0; i < currentTasks.level4.length; i++) {
-        const value = document.getElementById(`level4-${i}`).value;
-        userAnswers.level4.push(value);
-    }
-    
+    const l4Inputs = document.querySelectorAll('input[id^="level4-"]');
+    userAnswers.level4 = Array.from(l4Inputs, el => el.value);
+
     // Level 5
-    userAnswers.level5 = [];
-    for (let i = 0; i < currentTasks.level5.length; i++) {
-        const value = document.getElementById(`level5-${i}`).value;
-        userAnswers.level5.push(value);
-    }
-    
+    const l5Selects = document.querySelectorAll('select[id^="level5-"]');
+    userAnswers.level5 = Array.from(l5Selects, el => el.value);
+
     // Level 6
     userAnswers.level6 = [];
     for (let i = 0; i < currentTasks.level6.subnets.length; i++) {
@@ -371,12 +392,22 @@ function collectAnswers() {
 
 // Grade all answers
 function gradeAnswers() {
+    // Pre-fetch all graded elements in one pass each level to avoid repeated DOM queries
+    const l1Inputs     = Array.from(document.querySelectorAll('input[id^="level1-"]'));
+    const l2Selects    = Array.from(document.querySelectorAll('select[id^="level2-"]'));
+    const l3Networks   = Array.from(document.querySelectorAll('input[id^="level3-network-"]'));
+    const l3Broadcasts = Array.from(document.querySelectorAll('input[id^="level3-broadcast-"]'));
+    const l4Inputs     = Array.from(document.querySelectorAll('input[id^="level4-"]'));
+    const l5Selects    = Array.from(document.querySelectorAll('select[id^="level5-"]'));
+    const l6Networks   = Array.from(document.querySelectorAll('input[id^="level6-network-"]'));
+    const l6Masks      = Array.from(document.querySelectorAll('input[id^="level6-mask-"]'));
+    const l6Broadcasts = Array.from(document.querySelectorAll('input[id^="level6-broadcast-"]'));
+
     // Level 1
     for (let i = 0; i < currentTasks.level1.length; i++) {
-        const input = document.getElementById(`level1-${i}`);
+        const input = l1Inputs[i];
         const correct = compareIps(userAnswers.level1[i], currentTasks.level1[i].decimal);
-        const baseClasses = 'w-full px-2 py-1 border rounded text-gray-900 text-sm focus:outline-none';
-        input.className = correct ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
+        input.className = INPUT_BASE + (correct ? CLASS_CORRECT : CLASS_WRONG);
         
         if (!correct) {
             addFeedback('level1', i, 
@@ -388,10 +419,9 @@ function gradeAnswers() {
     
     // Level 2
     for (let i = 0; i < currentTasks.level2.length; i++) {
-        const select = document.getElementById(`level2-${i}`);
+        const select = l2Selects[i];
         const correct = userAnswers.level2[i] === currentTasks.level2[i].class;
-        const baseClasses = 'w-full px-2 py-1 bg-white border rounded text-gray-900 text-sm focus:outline-none';
-        select.className = correct ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
+        select.className = SELECT_BASE + (correct ? CLASS_CORRECT : CLASS_WRONG);
         
         if (!correct) {
             const firstOctet = parseInt(currentTasks.level2[i].ip.split('.')[0]);
@@ -404,15 +434,14 @@ function gradeAnswers() {
     
     // Level 3
     for (let i = 0; i < currentTasks.level3.length; i++) {
-        const networkInput = document.getElementById(`level3-network-${i}`);
-        const broadcastInput = document.getElementById(`level3-broadcast-${i}`);
+        const networkInput   = l3Networks[i];
+        const broadcastInput = l3Broadcasts[i];
         
-        const networkCorrect = compareIps(userAnswers.level3[i].network, currentTasks.level3[i].networkAddr);
+        const networkCorrect   = compareIps(userAnswers.level3[i].network, currentTasks.level3[i].networkAddr);
         const broadcastCorrect = compareIps(userAnswers.level3[i].broadcast, currentTasks.level3[i].broadcastAddr);
         
-        const baseClasses = 'w-full px-2 py-1 border rounded text-gray-900 text-sm focus:outline-none';
-        networkInput.className = networkCorrect ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
-        broadcastInput.className = broadcastCorrect ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
+        networkInput.className   = INPUT_BASE + (networkCorrect   ? CLASS_CORRECT : CLASS_WRONG);
+        broadcastInput.className = INPUT_BASE + (broadcastCorrect ? CLASS_CORRECT : CLASS_WRONG);
         
         if (!networkCorrect || !broadcastCorrect) {
             const mask = cidrToSubnetMask(currentTasks.level3[i].cidr);
@@ -426,10 +455,9 @@ function gradeAnswers() {
     
     // Level 4
     for (let i = 0; i < currentTasks.level4.length; i++) {
-        const input = document.getElementById(`level4-${i}`);
+        const input = l4Inputs[i];
         const correct = parseInt(userAnswers.level4[i]) === currentTasks.level4[i].hostCount;
-        const baseClasses = 'w-full px-2 py-1 border rounded text-gray-900 text-sm focus:outline-none';
-        input.className = correct ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
+        input.className = INPUT_BASE + (correct ? CLASS_CORRECT : CLASS_WRONG);
         
         if (!correct) {
             const cidr = subnetMaskToCidr(currentTasks.level4[i].mask);
@@ -443,11 +471,10 @@ function gradeAnswers() {
     
     // Level 5
     for (let i = 0; i < currentTasks.level5.length; i++) {
-        const select = document.getElementById(`level5-${i}`);
+        const select = l5Selects[i];
         const expected = currentTasks.level5[i].sameNetwork ? 'Yes' : 'No';
         const correct = userAnswers.level5[i] === expected;
-        const baseClasses = 'w-full px-2 py-1 bg-white border rounded text-gray-900 text-sm focus:outline-none';
-        select.className = correct ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
+        select.className = SELECT_BASE + (correct ? CLASS_CORRECT : CLASS_WRONG);
         
         if (!correct) {
             const cidr = subnetMaskToCidr(currentTasks.level5[i].mask);
@@ -463,20 +490,19 @@ function gradeAnswers() {
     
     // Level 6
     for (let i = 0; i < currentTasks.level6.subnets.length; i++) {
-        const networkInput = document.getElementById(`level6-network-${i}`);
-        const maskInput = document.getElementById(`level6-mask-${i}`);
-        const broadcastInput = document.getElementById(`level6-broadcast-${i}`);
+        const networkInput   = l6Networks[i];
+        const maskInput      = l6Masks[i];
+        const broadcastInput = l6Broadcasts[i];
         
         const correctSubnet = currentTasks.level6.subnets[i];
         
-        const networkCorrect = compareIps(userAnswers.level6[i].network, correctSubnet.networkAddr);
-        const maskCorrect = compareIps(userAnswers.level6[i].mask, correctSubnet.mask);
+        const networkCorrect   = compareIps(userAnswers.level6[i].network, correctSubnet.networkAddr);
+        const maskCorrect      = compareIps(userAnswers.level6[i].mask, correctSubnet.mask);
         const broadcastCorrect = compareIps(userAnswers.level6[i].broadcast, correctSubnet.broadcastAddr);
         
-        const baseClasses = 'w-full px-2 py-1 border rounded text-gray-900 text-sm focus:outline-none';
-        networkInput.className = networkCorrect ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
-        maskInput.className = maskCorrect ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
-        broadcastInput.className = broadcastCorrect ? `${baseClasses} border-green-500 bg-green-100` : `${baseClasses} border-red-500 bg-red-100`;
+        networkInput.className   = INPUT_BASE + (networkCorrect   ? CLASS_CORRECT : CLASS_WRONG);
+        maskInput.className      = INPUT_BASE + (maskCorrect      ? CLASS_CORRECT : CLASS_WRONG);
+        broadcastInput.className = INPUT_BASE + (broadcastCorrect ? CLASS_CORRECT : CLASS_WRONG);
         
         if (!networkCorrect || !maskCorrect || !broadcastCorrect) {
             const hostBits = 32 - correctSubnet.cidr;
@@ -484,31 +510,15 @@ function gradeAnswers() {
                 `Correct network address: <span class="correct-answer">${correctSubnet.networkAddr}</span><br>
                  Correct subnet mask: <span class="correct-answer">${correctSubnet.mask}</span><br>
                  Correct broadcast address: <span class="correct-answer">${correctSubnet.broadcastAddr}</span><br>
-                 Explanation: For ${correctSubnet.hosts} hosts, ${hostBits} host bits are needed (2^${hostBits}-2 = ${Math.pow(2, hostBits) - 2} hosts), which gives a /${correctSubnet.cidr} prefix.`
+                 Explanation: For ${correctSubnet.hosts} hosts, ${hostBits} host bits are needed (2^${hostBits}-2 = ${(1 << hostBits) - 2} hosts), which gives a /${correctSubnet.cidr} prefix.`
             );
         }
     }
 }
 
-// Add feedback row
+// Add feedback row – O(1) lookup via taskRowMap populated during generation
 function addFeedback(levelId, taskIndex, message) {
-    const tbody = document.getElementById(`${levelId}-tbody`);
-    const rows = Array.from(tbody.getElementsByTagName('tr'));
-    
-    // Find the actual task row (not a feedback row)
-    let taskRowCount = 0;
-    let targetRow = null;
-    
-    for (let row of rows) {
-        if (!row.classList.contains('feedback-row')) {
-            if (taskRowCount === taskIndex) {
-                targetRow = row;
-                break;
-            }
-            taskRowCount++;
-        }
-    }
-    
+    const targetRow = taskRowMap[`${levelId}-${taskIndex}`];
     if (!targetRow) return;
     
     const feedbackRow = document.createElement('tr');
@@ -591,24 +601,17 @@ function displayResults() {
     // Count Level 5
     totalQuestions += currentTasks.level5.length;
     for (let i = 0; i < currentTasks.level5.length; i++) {
-        const expected = currentTasks.level5[i].isPublic ? 'Да' : 'Не';
+        const expected = currentTasks.level5[i].sameNetwork ? 'Yes' : 'No';
         if (userAnswers.level5[i] === expected) correctAnswers++;
     }
     
     // Count Level 6
-    totalQuestions += currentTasks.level6.length;
-    for (let i = 0; i < currentTasks.level6.length; i++) {
-        const expected = currentTasks.level6[i].sameNetwork ? 'Да' : 'Не';
-        if (userAnswers.level6[i] === expected) correctAnswers++;
-    }
-    
-    // Count Level 7
-    totalQuestions += currentTasks.level7.subnets.length * 3;
-    for (let i = 0; i < currentTasks.level7.subnets.length; i++) {
-        const correctSubnet = currentTasks.level7.subnets[i];
-        if (compareIps(userAnswers.level7[i].network, correctSubnet.networkAddr)) correctAnswers++;
-        if (compareIps(userAnswers.level7[i].mask, correctSubnet.mask)) correctAnswers++;
-        if (compareIps(userAnswers.level7[i].broadcast, correctSubnet.broadcastAddr)) correctAnswers++;
+    totalQuestions += currentTasks.level6.subnets.length * 3;
+    for (let i = 0; i < currentTasks.level6.subnets.length; i++) {
+        const correctSubnet = currentTasks.level6.subnets[i];
+        if (compareIps(userAnswers.level6[i].network, correctSubnet.networkAddr)) correctAnswers++;
+        if (compareIps(userAnswers.level6[i].mask, correctSubnet.mask)) correctAnswers++;
+        if (compareIps(userAnswers.level6[i].broadcast, correctSubnet.broadcastAddr)) correctAnswers++;
     }
     
     const percentage = Math.round((correctAnswers / totalQuestions) * 100);
