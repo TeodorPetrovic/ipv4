@@ -9,6 +9,7 @@ import { admins, students } from '#server/database/schema'
 const STUDENT_COOKIE = 'student_session'
 const ADMIN_COOKIE = 'admin_session'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30
+const STUDENT_SYNC_URL = 'https://sync.singidunum.ac.rs/api/index.php'
 
 export interface StudentSession {
   studentDbId: number
@@ -21,8 +22,113 @@ interface AuthState {
   isAdmin: boolean
 }
 
-function getFallbackStudentName(studentId: string) {
-  return `Student ${studentId}`
+interface StudentSyncPayload {
+  indeks?: string
+  ime?: string
+  prezime?: string
+  email?: string
+}
+
+interface StudentSyncResponse {
+  type?: string
+  code?: number | string
+  message?: string
+  get_student_info_full?: StudentSyncPayload
+}
+
+function buildStudentName(firstName?: string, lastName?: string) {
+  return [firstName?.trim(), lastName?.trim()].filter(Boolean).join(' ')
+}
+
+function normalizeStudentSyncResponse(response: unknown): StudentSyncResponse {
+  if (typeof response === 'string') {
+    try {
+      return JSON.parse(response) as StudentSyncResponse
+    } catch {
+      throw createError({
+        statusCode: 502,
+        message: 'Student sync returned unreadable JSON',
+      })
+    }
+  }
+
+  if (!response || typeof response !== 'object') {
+    throw createError({
+      statusCode: 502,
+      message: 'Student sync returned an invalid response',
+    })
+  }
+
+  return response as StudentSyncResponse
+}
+
+async function fetchStudentInfo(studentId: string) {
+  const runtimeConfig = useRuntimeConfig()
+  const apiKey = (
+    process.env.SINGIDUNUM_SYNC_API_KEY
+    || runtimeConfig.singidunumSyncApiKey
+    || ''
+  ).trim()
+
+  if (!apiKey) {
+    throw createError({
+      statusCode: 500,
+      message: 'Student sync API key is not configured',
+    })
+  }
+
+  const url = new URL(STUDENT_SYNC_URL)
+  url.searchParams.set('key', apiKey)
+  url.searchParams.set('action', 'get_student_info_full')
+  url.searchParams.set('Indeks', studentId)
+  url.searchParams.set('version', '1')
+
+  let response: unknown
+
+  try {
+    response = await $fetch(url.toString())
+  } catch {
+    throw createError({
+      statusCode: 502,
+      message: 'Unable to fetch student information',
+    })
+  }
+
+  const normalizedResponse = normalizeStudentSyncResponse(response)
+
+  if (normalizedResponse.type === 'error') {
+    throw createError({
+      statusCode: 404,
+      message: normalizedResponse.message || 'Student not found',
+    })
+  }
+
+  const responseCode = Number(normalizedResponse.code)
+
+  if (normalizedResponse.type !== 'return' || responseCode !== 1000 || !normalizedResponse.get_student_info_full) {
+    throw createError({
+      statusCode: 502,
+      message: 'Student sync returned an invalid response',
+    })
+  }
+
+  const syncedStudentId = normalizedResponse.get_student_info_full.indeks?.trim() || studentId
+  const name = buildStudentName(
+    normalizedResponse.get_student_info_full.ime,
+    normalizedResponse.get_student_info_full.prezime,
+  )
+
+  if (!name) {
+    throw createError({
+      statusCode: 502,
+      message: 'Student sync response did not include a valid name',
+    })
+  }
+
+  return {
+    studentId: syncedStudentId,
+    name,
+  }
 }
 
 function shouldUseSecureCookies(event: H3Event) {
@@ -76,29 +182,39 @@ export async function loginStudent(studentId: string) {
     })
   }
 
+  const syncedStudent = await fetchStudentInfo(normalizedStudentId)
+
   const existingRows = await db
     .select()
     .from(students)
-    .where(eq(students.studentId, normalizedStudentId))
+    .where(eq(students.studentId, syncedStudent.studentId))
     .orderBy(desc(students.id))
     .limit(1)
 
   const [existingStudent] = existingRows
 
   if (existingStudent) {
+    if (existingStudent.name !== syncedStudent.name) {
+      await db
+        .update(students)
+        .set({
+          name: syncedStudent.name,
+        })
+        .where(eq(students.id, existingStudent.id))
+    }
+
     return {
       id: existingStudent.id,
       studentId: existingStudent.studentId,
-      name: existingStudent.name,
+      name: syncedStudent.name,
     }
   }
 
-  const name = getFallbackStudentName(normalizedStudentId)
   const [inserted] = await db
     .insert(students)
     .values({
-      name,
-      studentId: normalizedStudentId,
+      name: syncedStudent.name,
+      studentId: syncedStudent.studentId,
       createdAt: new Date(),
     })
     .$returningId()
@@ -112,8 +228,8 @@ export async function loginStudent(studentId: string) {
 
   return {
     id: inserted.id,
-    studentId: normalizedStudentId,
-    name,
+    studentId: syncedStudent.studentId,
+    name: syncedStudent.name,
   }
 }
 

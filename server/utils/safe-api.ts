@@ -12,7 +12,7 @@ export function withSafeApi(handler: ApiHandler, fallbackMessage = 'Unable to pr
     try {
       return await handler(event)
     } catch (error) {
-      if (hasStatusCode(error) && error.statusCode < 500) {
+      if (hasStatusCode(error)) {
         throw error
       }
 

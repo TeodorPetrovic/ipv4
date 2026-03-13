@@ -4,6 +4,10 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
 
+  runtimeConfig: {
+    singidunumSyncApiKey: process.env.SINGIDUNUM_SYNC_API_KEY || '',
+  },
+
   app: {
     head: {
       title: 'IP Singidunum',

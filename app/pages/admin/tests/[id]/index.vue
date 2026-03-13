@@ -22,6 +22,12 @@ const resultsError = ref('')
 const testTitle = ref('')
 const results = ref<TestResultRow[]>([])
 
+function exportResults() {
+  if (import.meta.client) {
+    window.location.href = `/api/results/tests/${testId}/export`
+  }
+}
+
 const columns: TableColumn<TestResultRow>[] = [
   {
     accessorKey: 'studentName',
@@ -110,6 +116,9 @@ await loadResults()
       <div class="flex gap-2">
         <UButton color="neutral" variant="outline" :to="`/admin/tests/${testId}/edit`">
           Edit Test
+        </UButton>
+        <UButton color="neutral" variant="outline" icon="i-lucide-download" @click="exportResults">
+          Export Excel
         </UButton>
         <UButton color="neutral" variant="outline" :loading="resultsLoading" @click="loadResults">
           Refresh Results

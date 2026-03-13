@@ -1,5 +1,6 @@
-import { desc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
 import { createError } from 'h3'
+import * as XLSX from 'xlsx'
 
 import { db } from '#server/database'
 import { attemptQuestions, students, testAttempts, tests } from '#server/database/schema'
@@ -68,12 +69,11 @@ async function buildAttemptResults(
   return results
 }
 
-export async function getSubmittedResults() {
+export async function getAllResults() {
   const attemptRows = await db
     .select()
     .from(testAttempts)
-    .where(isNotNull(testAttempts.submittedAt))
-    .orderBy(desc(testAttempts.submittedAt), desc(testAttempts.id))
+    .orderBy(desc(testAttempts.startedAt), desc(testAttempts.id))
 
   return buildAttemptResults(attemptRows)
 }
@@ -115,4 +115,54 @@ export async function getResultsByStudentId(studentDbId: number) {
     .orderBy(desc(testAttempts.submittedAt), desc(testAttempts.id))
 
   return buildAttemptResults(attemptRows)
+}
+
+function buildExportFilename(title: string, testId: number) {
+  const safeTitle = title
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+
+  return `${safeTitle || `test_${testId}`}_results.xlsx`
+}
+
+export async function exportResultsForTest(testId: number) {
+  const testRows = await db
+    .select()
+    .from(tests)
+    .where(eq(tests.id, testId))
+    .limit(1)
+
+  const [testRow] = testRows
+
+  if (!testRow) {
+    throw createError({
+      statusCode: 404,
+      message: 'Test not found',
+    })
+  }
+
+  const attemptRows = await db
+    .select()
+    .from(testAttempts)
+    .where(eq(testAttempts.testId, testId))
+    .orderBy(desc(testAttempts.startedAt), desc(testAttempts.id))
+
+  const results = await buildAttemptResults(attemptRows, {
+    testRows: [testRow],
+  })
+
+  const worksheet = XLSX.utils.json_to_sheet(results.map(result => ({
+    'Student ID': result.studentId,
+    Name: result.studentName,
+    Score: result.score ?? '',
+  })))
+  const workbook = XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Results')
+
+  return {
+    buffer: XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer,
+    filename: buildExportFilename(testRow.title, testId),
+  }
 }
