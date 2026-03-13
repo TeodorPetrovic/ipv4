@@ -1,0 +1,142 @@
+const srCyrl = {
+  layout: {
+    logout: 'Одјава',
+    languageSwitcher: 'Промени језик',
+    toggleTheme: 'Промени тему',
+    student: 'Студент',
+  },
+  ipConverter: {
+    title: 'IP конвертор',
+    decimalToBinary: 'Децимални у бинарни',
+    binaryToDecimal: 'Бинарни у децимални',
+    invalidValue: 'Невалидна вредност',
+  },
+  timer: {
+    remainingTime: 'Преостало време',
+  },
+  common: {
+    yes: 'Да',
+    no: 'Не',
+    cancel: 'Откажи',
+    continue: 'Настави',
+    refresh: 'Освежи',
+    backToTests: 'Назад на листу тестова',
+    submitAnswers: 'Предај одговоре',
+  },
+  login: {
+    studentTitle: 'Пријава студента',
+    studentDescription: 'Унесите број индекса да бисте видели доступне тестове.',
+    studentIdLabel: 'Број индекса',
+    studentIdPlaceholder: '2024123456',
+    adminTitle: 'Админ пријава',
+    adminDescription: 'Унесите имејл и лозинку за управљање тестовима, студентима и резултатима.',
+    emailLabel: 'Имејл',
+    passwordLabel: 'Лозинка',
+    passwordPlaceholder: 'Унесите лозинку',
+    errors: {
+      studentIdRequired: 'Број индекса је обавезан',
+      studentLoginFailed: 'Пријава није успела',
+      adminLoginFailed: 'Админ пријава није успела',
+    },
+  },
+  tests: {
+    searchPlaceholder: 'Претражи тестове',
+    empty: 'Нема доступних тестова.',
+    start: 'Почни',
+    table: {
+      test: 'Тест',
+      action: 'Акција',
+    },
+    confirm: {
+      title: 'Почни тест',
+      description: 'Да ли желите да покренете овај тест сада?',
+    },
+    errors: {
+      loadFailed: 'Није могуће учитати тестове',
+      openFailed: 'Није могуће отворити овај тест',
+    },
+  },
+  test: {
+    errors: {
+      loadFailed: 'Није могуће учитати овај покушај.',
+      submitTitle: 'Грешка при предавању',
+      submitFailed: 'Није могуће предати овај покушај.',
+    },
+  },
+  results: {
+    errors: {
+      loadFailed: 'Није могуће учитати резултате',
+      unavailable: 'Резултати нису доступни.',
+    },
+    expired: 'Рок за предају је истекао',
+    submitted: 'Тест предат',
+    yourResult: 'Ваш резултат',
+    correctPoints: 'тачних поена',
+    passed: 'Тест положен',
+    partial: 'Делимично тачно',
+    failed: 'Тест није положен',
+    yourAnswer: 'Ваш одговор',
+    correctAnswer: 'Тачан одговор',
+    yourNetworkAddress: 'Ваша мрежна адреса',
+    yourMask: 'Ваша маска',
+    yourBroadcast: 'Ваша емисиона адреса',
+    correctNetworkAddress: 'Тачна мрежна адреса',
+    correctMask: 'Тачна маска',
+    correctBroadcast: 'Тачна емисиона адреса',
+  },
+  levels: {
+    level1: {
+      title: 'Ниво 1 - Превођење из бинарног у децимални облик',
+      description: 'Бинарно задате мрежне адресе превести у децимални облик:',
+      binary: 'Бинарни',
+      decimalAnswer: 'Децимални одговор',
+    },
+    level2: {
+      title: 'Ниво 2 - IPv4 класа',
+      description: 'Израчунати класе мрежних адреса:',
+      ipAddress: 'IP адреса',
+      class: 'Класа',
+    },
+    level3: {
+      title: 'Ниво 3 - Мрежна и емисиона адреса',
+      description: 'За задате адресе израчунати адресу мреже и емисиону адресу:',
+      hostAddress: 'Адреса хоста',
+      networkAddress: 'Мрежна адреса',
+      broadcastAddress: 'Емисиона адреса',
+      correctNetwork: 'Тачна мрежна',
+      correctBroadcast: 'Тачна емисиона',
+    },
+    level4: {
+      title: 'Ниво 4 - Капацитет мреже',
+      description: 'Израчунати највећи могући број рачунара у мрежама са следећим мрежним маскама:',
+      subnetMask: 'Маска подмреже',
+      usableHosts: 'Употребљиви хостови',
+    },
+    level5: {
+      title: 'Ниво 5 - Адресе рачунара са јавним Интернет адресама',
+      description: 'Израчунати које се од следећих адреса могу користити за адресовање рачунара на Интернету:',
+      address: 'Адреса',
+      usableOnInternet: 'Употребљива на Интернету?',
+    },
+    level6: {
+      title: 'Ниво 6 - Локалне и удаљене адресе',
+      description: 'Израчунати да ли се следећи рачунари налазе у истој мрежи:',
+      address1: 'Адреса 1',
+      address2: 'Адреса 2',
+      subnetMask: 'Маска подмреже',
+      sameNetwork: 'Иста мрежа?',
+    },
+    level7: {
+      title: 'Ниво 7 - Пројекат подмрежавања',
+      description: 'За потребе мреже организације додељен је опсег 152.169.21.0/24. Поделити опсег у мање мреже које би садржале наведени број рачунара по одељењу. Мреже морају бити најмање могуће величине а сортиране по датом редоследу.',
+      subnet: 'Подмрежа',
+      hosts: 'Хостова',
+      networkAddress: 'Мрежна адреса',
+      subnetMask: 'Маска подмреже',
+      broadcastAddress: 'Емисиона адреса',
+    },
+  },
+}
+
+export default srCyrl
+export type TranslationShape = typeof srCyrl

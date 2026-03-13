@@ -6,6 +6,7 @@ definePageMeta({
   layout: 'student',
 })
 
+const { t } = useAppI18n()
 const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 const loadingActionId = ref<number | null>(null)
 const loadingPage = ref(false)
@@ -24,7 +25,7 @@ async function loadTests() {
     })
     pageError.value = ''
   } catch (fetchError: any) {
-    pageError.value = fetchError.data?.message || 'Unable to load tests'
+    pageError.value = fetchError.data?.message || t('tests.errors.loadFailed')
   } finally {
     loadingPage.value = false
   }
@@ -33,19 +34,19 @@ async function loadTests() {
 await loadTests()
 
 function actionLabel(_test: StudentTest) {
-  return 'Start'
+  return t('tests.start')
 }
 
-const columns: TableColumn<StudentTest>[] = [
+const columns = computed<TableColumn<StudentTest>[]>(() => [
   {
     accessorKey: 'title',
-    header: 'Test',
+    header: t('tests.table.test'),
   },
   {
     id: 'action',
-    header: 'Action',
+    header: t('tests.table.action'),
   },
-]
+])
 
 function askStartTest(test: StudentTest) {
   selectedTest.value = test
@@ -85,7 +86,7 @@ async function openTest(test: StudentTest) {
     await loadTests()
     await navigateTo(`/test/${response.attemptId}`)
   } catch (fetchError: any) {
-    pageError.value = fetchError.data?.message || 'Unable to open this test'
+    pageError.value = fetchError.data?.message || t('tests.errors.openFailed')
   } finally {
     loadingActionId.value = null
   }
@@ -97,14 +98,14 @@ async function openTest(test: StudentTest) {
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <UInput
         v-model="globalFilter"
-        placeholder="Search tests"
+        :placeholder="t('tests.searchPlaceholder')"
         icon="i-lucide-search"
         class="w-full sm:max-w-xs"
       />
 
       <div class="flex flex-wrap gap-2">
         <UButton color="neutral" variant="outline" :loading="loadingPage" icon="i-lucide-refresh-ccw" @click="loadTests">
-          Refresh
+          {{ t('common.refresh') }}
         </UButton>
       </div>
     </div>
@@ -123,17 +124,18 @@ async function openTest(test: StudentTest) {
         :columns="columns"
         :loading="loadingPage || loadingActionId !== null"
         sticky="header"
-        empty="No tests available."
+        :empty="t('tests.empty')"
+        class="dark:bg-muted bg-muted"
       >
         <template #title-cell="{ row }">
           <div>
-            <p class="font-medium">{{ row.original.title }}</p>
+            <p class="text-black font-bold dark:text-white">{{ row.original.title }}</p>
           </div>
         </template>
 
         <template #action-header>
           <div class="w-full text-right">
-            Action
+            {{ t('tests.table.action') }}
           </div>
         </template>
 
@@ -154,16 +156,16 @@ async function openTest(test: StudentTest) {
 
     <UModal
       v-model:open="confirmOpen"
-      title="Start test"
-      description="Do you want to start this test now?"
+      :title="t('tests.confirm.title')"
+      :description="t('tests.confirm.description')"
     >
       <template #footer>
         <div class="flex w-full justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="cancelStartTest">
-            Cancel
+          <UButton color="primary" @click="cancelStartTest">
+            {{ t('common.cancel') }}
           </UButton>
-          <UButton color="primary" @click="confirmStartTest">
-            Yes
+          <UButton class="bg-sky-500" @click="confirmStartTest">
+            {{ t('common.yes') }}
           </UButton>
         </div>
       </template>

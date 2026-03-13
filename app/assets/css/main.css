@@ -23,13 +23,13 @@
 .field-correct input,
 .field-correct textarea,
 .field-correct button {
-  background-color: color-mix(in srgb, var(--field-ok) 15%, white) !important;
+  background-color: color-mix(in srgb, var(--field-ok) 50%, white) !important;
 }
 
 .dark .field-correct input,
 .dark .field-correct textarea,
 .dark .field-correct button {
-  background-color: color-mix(in srgb, var(--field-ok) 20%, transparent) !important;
+  background-color: color-mix(in srgb, var(--field-ok) 40%, transparent) !important;
 }
 
 .field-wrong input,
@@ -42,13 +42,13 @@
 .field-wrong input,
 .field-wrong textarea,
 .field-wrong button {
-  background-color: color-mix(in srgb, var(--field-bad) 12%, white) !important;
+  background-color: color-mix(in srgb, var(--field-bad) 50%, white) !important;
 }
 
 .dark .field-wrong input,
 .dark .field-wrong textarea,
 .dark .field-wrong button {
-  background-color: color-mix(in srgb, var(--field-bad) 18%, transparent) !important;
+  background-color: color-mix(in srgb, var(--field-bad) 36%, transparent) !important;
 }
 
 .table-shell thead th {
